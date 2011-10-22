@@ -150,7 +150,7 @@ $session->close;
 
 if( $state eq 'OK' )
 {
-    print "Chassis OK |";
+    print "Chassis OK - ";
 
     print "Load: $load{'1MIN'} $load{'5MIN'} $load{'15MIN'}; " if !$skipload;
     printf( "Mem: %0.2f%%; ", $memUsage ) if( !$skipmem );
