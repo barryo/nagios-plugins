@@ -39,10 +39,11 @@ use Net::SNMP;
 use Getopt::Long;
 &Getopt::Long::config( 'auto_abbrev' );
 
-my %ERRORS = ( 'UNKNOWN' , '-1',
-               'OK' ,      '0',
-               'WARNING',  '1',
-               'CRITICAL', '2'
+my %ERRORS = (
+               'OK' ,      0,
+               'WARNING',  1,
+               'CRITICAL', 2,
+               'UNKNOWN',  3
 );
 
 my $status;
@@ -55,7 +56,7 @@ my $key;
 my $community = "public";
 my $port = 161;
 
-my $hostname;
+my $hostname = undef;
 my $session;
 my $error;
 my $response = undef;
@@ -84,6 +85,7 @@ my %LOAD_INTERVALS = (
 
 my $usage;
 my $skipreboot = 0;
+my $skipswap = 0;
 my $skipmem = 0;
 my $skipload = 0;
 my $verbose = 0;
@@ -99,9 +101,11 @@ alarm( $TIMEOUT );
 
 
 $status = GetOptions(
+            "hostname=s",  \$hostname,
             "community=s", \$community,
             "port=i",      \$port,
             "skipmem",     \$skipmem,
+            "skipswap",    \$skipswap,
             "skipload",    \$skipload,
             "skipreboot",  \$skipreboot,
             "verbose",     \$verbose,
@@ -115,7 +119,7 @@ if( $status == 0 )
     usage();
 }
 
-$hostname  = shift || &usage;
+usage() if( !defined( $hostname ) );
 
 ( $session, $error ) = Net::SNMP->session(
     -hostname  => $hostname,
@@ -150,11 +154,11 @@ $session->close;
 
 if( $state eq 'OK' )
 {
-    print "Chassis OK - ";
+    print "OK - ";
 
     print "Load: $load{'1MIN'} $load{'5MIN'} $load{'15MIN'}; " if !$skipload;
     printf( "Mem: %0.2f%%; ", $memUsage ) if( !$skipmem );
-    printf( "Swap: %0.2f%%; ", $swapUsage ) if( !$skipmem && defined( $swapUsage ) );
+    printf( "Swap: %0.2f%%; ", $swapUsage ) if( !$skipmem && !$skipswap && defined( $swapUsage ) );
     printf( "Up %0.2f days", $uptime ) if( !$skipreboot );
     print( "\n" );
 }
@@ -249,11 +253,11 @@ sub checkMemory
         &setstate( 'WARNING', "Memory Usage " . int( $memUsage ) . "%" );
     }
 
-    if( defined( $swapError ) && $swapError ) {
+    if( !$skipswap && defined( $swapError ) && $swapError ) {
         &setstate( 'CRITICAL', "Swap Error: " . $swapErrorMsg );
     }
 
-    if( defined( $swaptotal ) )
+    if( !$skipswap && defined( $swaptotal ) && $swaptotal )
     {
         $swapUsage = ( ( $swaptotal - $swapfree ) * 100 ) / $swaptotal;
 
@@ -351,8 +355,11 @@ sub usage {
   printf "  * system load\n";
   printf "  * if the device was recently rebooted\n\n";
   printf "Additional options:\n\n";
+  printf "  --hostname              The hostname to check\n";
+  printf "  --community             The SNMP access community\n";
   printf "  --skipload              Skip server load checks\n";
   printf "  --skipmem               Skip memory checks\n";
+  printf "  --skipswap              Skip swap but not real memory checks\n";
   printf "  --skipreboot            Skip reboot check\n";
   printf "  --reboot <integer>      How many minutes ago should we warn that the device has been rebooted (default: " . $rebootWindow . ")\n";
   printf "  --memwarn <integer>     Percentage of memory usage for warning (default: " . $memwarn . ")\n";
