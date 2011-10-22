@@ -296,7 +296,7 @@ sub checkReboot
     $sysuptime = $response->{$snmpSysUpTime} / 100.0 / 60.0;
 
     if( $sysuptime <= $rebootWindow ) {
-            &setstate( 'WARNING', sprintf( "Device rebooted %0.1f minutes ago", $uptime ) );
+            &setstate( 'WARNING', sprintf( "Device rebooted %0.1f minutes ago", $sysuptime ) );
     }
 
     $uptime = $sysuptime / 60.0 / 24.0;
