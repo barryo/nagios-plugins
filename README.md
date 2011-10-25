@@ -65,3 +65,44 @@ About the Author
 Please see my company website at http://www.opensolutions.ie/ or my own personal
 site at http://www.barryodonovan.com/.
 
+
+
+Overview of Available Plugins
+-----------------------------
+
+### check_chassis_cisco.pl
+
+This script polls a Cisco switch or router and checks and generates alerts on the following items:
+
+* a warning if the device was recently rebooted;
+* a warning / critical if any found temperature sensors are in a non-normal state;
+* a warning / critical if any found fans are in a non-normal state;
+* a warning / critical if any found PSUs are in a non-normal state;
+* a warning / critical if the 5 sec / 1 min / 5 min CPU utilisation is above set thresholds;
+* a warning / critical if the memory utilisation is above set thresholds.
+
+### check_chassis_server.pl
+
+This scrip polls a Linux / BSD server and  checks and generates alerts on the following items:
+
+* a warning if the device was recently rebooted;
+* a warning / critical if the 1/5/15 min load average is above thresholds set in the servers SNMP config file;
+* a warning / critical if the memory or swap utilisation is above set thresholds.
+
+Note that you may want to set swap warning threshold low (default is 20%) as you will want to know
+if you're using swap. If anyone is very familiar with the BSD memory model, I'd appreciate it if they
+could look that section over as it's more suited for Linux right now.
+
+
+### check_portsecurity.pl
+
+This script checks all ports on a Cisco switch and issues a critical alert if port security has
+been triggered resulting in a shutdown port on the device.
+
+
+### check_portstatus.pl
+
+This script will issue warnings if the port status on any Ethernet (by default) port on a Cisco
+switch has changed within the last hour (by default). I.e. a port up or a port down event.
+
+
