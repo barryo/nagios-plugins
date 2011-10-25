@@ -89,6 +89,7 @@ my $skipswap = 0;
 my $skipmem = 0;
 my $skipload = 0;
 my $verbose = 0;
+my $help = 0;
 
 
 
@@ -110,14 +111,15 @@ $status = GetOptions(
             "skipreboot",  \$skipreboot,
             "verbose",     \$verbose,
             "memwarn=i",   \$memwarn,
+            "help|?",               \$help,
             "memcrit=i",   \$memcrit,
             "reboot=i",    \$rebootWindow
 );
 
-if( $status == 0 )
-{
+if( !$status || $help ) {
     usage();
 }
+
 
 usage() if( !defined( $hostname ) );
 
@@ -308,6 +310,7 @@ sub usage {
   printf "  * system load\n";
   printf "  * if the device was recently rebooted\n\n";
   printf "Additional options:\n\n";
+  printf "  --help                  This help message\n\n";
   printf "  --hostname              The hostname to check\n";
   printf "  --community             The SNMP access community\n";
   printf "  --skipload              Skip server load checks\n";
@@ -321,13 +324,15 @@ sub usage {
   printf "  --swapcrit <integer>    Percentage of swap usage for critical (default: " . $swapcrit . ")\n";
   printf "  --loadwarn <float>      Multiplier of load critical value for warning (default: " . $loadwarn . ")\n";
   printf "                          (critical load value is taken from SNMP)\n";
-  printf "\nCopyright (c) 2011, Barry O'Donovan\n";
+  printf "\nCopyright (c) 2011, Barry O'Donovan <barry\@opensolutions.ie>\n";
   printf "All rights reserved.\n\n";
   printf "check_chassis_server.pl comes with ABSOLUTELY NO WARRANTY\n";
   printf "This programm is licensed under the terms of the ";
   printf "BSD New License (check source code for details)\n";
   printf "\n\n";
-  exit $ERRORS{"UNKNOWN"};
+
+  exit $ERRORS{"UNKNOWN"} if !$help;
+  exit 0;
 }
 
 sub setstate {

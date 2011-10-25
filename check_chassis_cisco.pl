@@ -93,6 +93,7 @@ my %threscpu = (
 my %threscpuarg;
 
 my $verbose = 0;
+my $help = 0;
 
 my $memwarn  = 70;
 my $memcrit  = 90;
@@ -138,14 +139,15 @@ $status = GetOptions(
             "thres-cpu-5sec=s", \$threscpuarg{'5sec'},
             "thres-cpu-1min=s", \$threscpuarg{'1min'},
             "thres-cpu-5min=s", \$threscpuarg{'5min'},
+            "help|?",               \$help,
             "verbose",          \$verbose,
             "reboot=i",         \$rebootWindow
 );
 
-if( $status == 0 )
-{
+if( !$status || $help ) {
     usage();
 }
+
 
 usage() if( !defined( $hostname ) );
 
@@ -485,6 +487,7 @@ sub usage {
   printf "  * system load\n";
   printf "  * if the device was recently rebooted\n\n";
   printf "Additional options:\n\n";
+  printf "  --help                  This help message\n\n";
   printf "  --hostname              The hostname to check\n";
   printf "  --port                  The port to query SNMP on (using: $port)\n";
   printf "  --community             The SNMP access community (using: $community)\n\n";
@@ -508,13 +511,15 @@ sub usage {
   printf( "  --thres-cpu-5min        CPU warning,critical thresholds for 5min checks (using %d,%d)\n\n", $threscpu{'5minw'}, $threscpu{'5minc'} );
 
   printf "  --reboot <integer>      How many minutes ago should we warn that the device has been rebooted (using: " . $rebootWindow . ")\n\n";
-  printf "\nCopyright (c) 2011, Barry O'Donovan\n";
+  printf "\nCopyright (c) 2011, Barry O'Donovan <barry\@opensolutions.ie>\n";
   printf "All rights reserved.\n\n";
   printf "check_chassis_server.pl comes with ABSOLUTELY NO WARRANTY\n";
   printf "This programm is licensed under the terms of the ";
   printf "BSD New License (check source code for details)\n";
   printf "\n\n";
-  exit $ERRORS{"UNKNOWN"};
+
+  exit $ERRORS{"UNKNOWN"} if !$help;
+  exit 0;
 }
 
 sub setstate {

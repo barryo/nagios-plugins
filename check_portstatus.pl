@@ -81,6 +81,7 @@ my $response = undef;
 my $allports = 0;
 
 my $verbose = 0;
+my $help = 0;
 
 
 # Just in case of problems, let's not hang Nagios
@@ -97,12 +98,14 @@ $status = GetOptions(
             "port=i",               \$port,
             "verbose",              \$verbose,
             "all-ports",            \$allports,
+            "help|?",               \$help,
             "window=i",             \$window
 );
 
-if( !$status ) {
+if( !$status || $help ) {
     usage();
 }
+
 
 usage() if( !defined( $hostname ) );
 
@@ -235,18 +238,21 @@ sub usage {
   printf "Checks the operational status of the port and alerts if it changed within\n";
   printf "  \$window seconds ago (default: $window).\n\n";
   printf "Additional options:\n\n";
+  printf "  --help                  This help message\n\n";
   printf "  --hostname              The hostname to check\n";
   printf "  --port                  The port to query SNMP on (using: $port)\n";
   printf "  --community             The SNMP access community (using: $community)\n\n";
   printf "  --window                If change occured within \$window seconds ago, then alert\n\n";
   printf "  --all-ports             By default, we only examine Ethernet ports\n\n";
-  printf "\nCopyright (c) 2011, Barry O'Donovan\n";
+  printf "\nCopyright (c) 2011, Barry O'Donovan <barry\@opensolutions.ie>\n";
   printf "All rights reserved.\n\n";
   printf "check_chassis_server.pl comes with ABSOLUTELY NO WARRANTY\n";
   printf "This programm is licensed under the terms of the ";
   printf "BSD New License (check source code for details)\n";
   printf "\n\n";
-  exit $ERRORS{"UNKNOWN"};
+
+  exit $ERRORS{"UNKNOWN"} if !$help;
+  exit 0;
 }
 
 sub setstate {

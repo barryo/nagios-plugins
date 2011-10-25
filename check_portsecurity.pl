@@ -73,7 +73,7 @@ my $response = undef;
 my $alertOnSecureDown = 0;
 
 my $verbose = 0;
-
+my $help = 0;
 
 # Just in case of problems, let's not hang Nagios
 $SIG{'ALRM'} = sub {
@@ -88,10 +88,11 @@ $status = GetOptions(
             "community=s",          \$community,
             "port=i",               \$port,
             "verbose",              \$verbose,
+            "help|?",               \$help,
             "alert-on-secure-down", \$alertOnSecureDown
 );
 
-if( !$status ) {
+if( !$status || $help ) {
     usage();
 }
 
@@ -187,17 +188,20 @@ sub usage {
   printf "     security violation when the object cpsIfViolationAction is of type\n";
   printf "     'shutdown'.\n\n";
   printf "Additional options:\n\n";
+  printf "  --help                  This help message\n\n";
   printf "  --hostname              The hostname to check\n";
   printf "  --port                  The port to query SNMP on (using: $port)\n";
   printf "  --community             The SNMP access community (using: $community)\n\n";
   printf "  --alert-on-secure-down  If port is in SECUREDOWN state, generate a warning alert\n\n";
-  printf "\nCopyright (c) 2011, Barry O'Donovan\n";
+  printf "\nCopyright (c) 2011, Barry O'Donovan <barry\@opensolutions.ie>\n";
   printf "All rights reserved.\n\n";
   printf "check_chassis_server.pl comes with ABSOLUTELY NO WARRANTY\n";
   printf "This programm is licensed under the terms of the ";
   printf "BSD New License (check source code for details)\n";
   printf "\n\n";
-  exit $ERRORS{"UNKNOWN"};
+
+  exit $ERRORS{"UNKNOWN"} if !$help;
+  exit 0;
 }
 
 sub setstate {
