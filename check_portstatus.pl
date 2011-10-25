@@ -57,6 +57,11 @@ my %CISCO_PORT_OPER_STATES = (
 );
 
 my %port_states;
+my %port_admin_states = (
+    '1' => 0,
+    '2' => 0,
+    '3' => 0
+);
 
 my $window = 3600;
 my $sysuptime = 0;
@@ -73,7 +78,7 @@ my $session;
 my $error;
 my $response = undef;
 
-my $alertOnSecureDown = 0;
+my $allports = 0;
 
 my $verbose = 0;
 
@@ -91,6 +96,7 @@ $status = GetOptions(
             "community=s",          \$community,
             "port=i",               \$port,
             "verbose",              \$verbose,
+            "all-ports",            \$allports,
             "window=i",             \$window
 );
 
@@ -126,18 +132,22 @@ if( !( $sysuptime = getSysUptime() ) ) {
 
 
 my $snmpPortOperStatusTable   = '1.3.6.1.2.1.2.2.1.8';
+my $snmpPortAdminStatusTable  = '1.3.6.1.2.1.2.2.1.7';
 my $snmpPortNameTable         = '1.3.6.1.2.1.31.1.1.1.1';
 my $snmpPortAliasTable        = '1.3.6.1.2.1.31.1.1.1.18';
+my $snmpPortTypeTable         = '1.3.6.1.2.1.2.2.1.3';
 my $snmpPortLastChangeTable   = '1.3.6.1.2.1.2.2.1.9';
 my $snmpPortChangeReasonTable = '1.3.6.1.4.1.9.9.276.1.1.2.1.3';
 
 my $operStatus   = snmpGetTable( $snmpPortOperStatusTable,   'port operational status' );
+my $adminStatus  = snmpGetTable( $snmpPortAdminStatusTable,  'port admin status' );
 my $name         = snmpGetTable( $snmpPortNameTable,         'port name'     );
 my $alias        = snmpGetTable( $snmpPortAliasTable,        'port alias'    );
+my $type         = snmpGetTable( $snmpPortTypeTable,         'port type'    );
 my $lastChange   = snmpGetTable( $snmpPortLastChangeTable,   'port last change at' );
 my $changeReason = snmpGetTable( $snmpPortChangeReasonTable, 'port change reason' );
 
-if( $operStatus && $name && $alias && $lastChange && $changeReason )
+if( $operStatus && $adminStatus && $name && $alias && $lastChange && $changeReason )
 {
     foreach $snmpkey ( keys %{$name} )
     {
@@ -146,10 +156,18 @@ if( $operStatus && $name && $alias && $lastChange && $changeReason )
             my $t_index = $1;
 
             my $t_state        = $operStatus->{$snmpPortOperStatusTable . '.' . $t_index};
+            my $t_admin        = $adminStatus->{$snmpPortAdminStatusTable . '.' . $t_index};
             my $t_name         = $name->{$snmpPortNameTable . '.' . $t_index};
             my $t_alias        = $alias->{$snmpPortAliasTable . '.' . $t_index};
+            my $t_type         = $type->{$snmpPortTypeTable . '.' . $t_index};
             my $t_lastChange   = $lastChange->{$snmpPortLastChangeTable . '.' . $t_index} / 100.0;
             my $t_changeReason = $changeReason->{$snmpPortChangeReasonTable . '.' . $t_index};
+
+            if( int( $t_type ) != 6 && !$allports )
+            {
+                printf( "Skipping $t_name - $t_alias of type $t_type as only checking Ethernet ports\n" ) if $verbose;
+                next;
+            }
 
             if( !$t_changeReason ) {
                 $t_changeReason = '';
@@ -161,6 +179,11 @@ if( $operStatus && $name && $alias && $lastChange && $changeReason )
                 $port_states{$t_state} = 0;
             }
             $port_states{$t_state}++;
+
+            if( !defined( $port_admin_states{$t_admin} ) ) {
+                $port_admin_states{$t_admin} = 0;
+            }
+            $port_admin_states{$t_admin}++;
 
             if( $t_lastChange != 0 && ( $sysuptime - $t_lastChange ) <= $window && ( $sysuptime - $t_lastChange ) > 0 ) {
                 &setstate( 'WARNING',
@@ -178,10 +201,10 @@ if( $operStatus && $name && $alias && $lastChange && $changeReason )
 $session->close;
 
 if( $state eq 'OK' ) {
-    print "OK - ";
+    print "OK - (oper/admin) ";
 
     while( my ( $key, $value ) = each( %port_states ) ) {
-        print "$value $CISCO_PORT_OPER_STATES{$key}; ";
+        printf( "%d%s %s; ", $value, defined( $port_admin_states{$key} ) ? "/$port_admin_states{$key}" : '', $CISCO_PORT_OPER_STATES{$key} );
     }
     print "\n";
 }
@@ -216,6 +239,7 @@ sub usage {
   printf "  --port                  The port to query SNMP on (using: $port)\n";
   printf "  --community             The SNMP access community (using: $community)\n\n";
   printf "  --window                If change occured within \$window seconds ago, then alert\n\n";
+  printf "  --all-ports             By default, we only examine Ethernet ports\n\n";
   printf "\nCopyright (c) 2011, Barry O'Donovan\n";
   printf "All rights reserved.\n\n";
   printf "check_chassis_server.pl comes with ABSOLUTELY NO WARRANTY\n";
