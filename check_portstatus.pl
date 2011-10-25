@@ -246,7 +246,7 @@ sub usage {
   printf "  --all-ports             By default, we only examine Ethernet ports\n\n";
   printf "\nCopyright (c) 2011, Barry O'Donovan <barry\@opensolutions.ie>\n";
   printf "All rights reserved.\n\n";
-  printf "check_chassis_server.pl comes with ABSOLUTELY NO WARRANTY\n";
+  printf "This script comes with ABSOLUTELY NO WARRANTY\n";
   printf "This programm is licensed under the terms of the ";
   printf "BSD New License (check source code for details)\n";
   printf "\n\n";
