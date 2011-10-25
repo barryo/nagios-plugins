@@ -148,7 +148,7 @@ my $name         = snmpGetTable( $snmpPortNameTable,         'port name'     );
 my $alias        = snmpGetTable( $snmpPortAliasTable,        'port alias'    );
 my $type         = snmpGetTable( $snmpPortTypeTable,         'port type'    );
 my $lastChange   = snmpGetTable( $snmpPortLastChangeTable,   'port last change at' );
-my $changeReason = snmpGetTable( $snmpPortChangeReasonTable, 'port change reason' ) if $changeReason;
+my $changeReason = snmpGetTable( $snmpPortChangeReasonTable, 'port change reason' );
 
 if( $operStatus && $adminStatus && $name && $alias && $lastChange )
 {
@@ -164,7 +164,7 @@ if( $operStatus && $adminStatus && $name && $alias && $lastChange )
             my $t_alias        = $alias->{$snmpPortAliasTable . '.' . $t_index};
             my $t_type         = $type->{$snmpPortTypeTable . '.' . $t_index};
             my $t_lastChange   = $lastChange->{$snmpPortLastChangeTable . '.' . $t_index} / 100.0;
-            my $t_changeReason = $changeReason->{$snmpPortChangeReasonTable . '.' . $t_index};
+            my $t_changeReason = $changeReason->{$snmpPortChangeReasonTable . '.' . $t_index} if $changeReason;
 
             if( int( $t_type ) != 6 && !$allports )
             {
