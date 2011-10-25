@@ -282,7 +282,7 @@ sub checkLoad
     my $snmpLoadValues    = '1.3.6.1.4.1.2021.10.1.3.';
     my $snmpLoadThres     = '1.3.6.1.4.1.2021.10.1.4.';
 
-    return if( !( $response = snmpGetRequest( $snmpLoadTable, 'system load' ) ) );
+    return if( !( $response = snmpGetTable( $snmpLoadTable, 'system load' ) ) );
 
     foreach $int ( keys %LOAD_INTERVALS )
     {
