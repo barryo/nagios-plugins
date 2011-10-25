@@ -148,9 +148,9 @@ my $name         = snmpGetTable( $snmpPortNameTable,         'port name'     );
 my $alias        = snmpGetTable( $snmpPortAliasTable,        'port alias'    );
 my $type         = snmpGetTable( $snmpPortTypeTable,         'port type'    );
 my $lastChange   = snmpGetTable( $snmpPortLastChangeTable,   'port last change at' );
-my $changeReason = snmpGetTable( $snmpPortChangeReasonTable, 'port change reason' );
+my $changeReason = snmpGetTable( $snmpPortChangeReasonTable, 'port change reason' ) if $changeReason;
 
-if( $operStatus && $adminStatus && $name && $alias && $lastChange && $changeReason )
+if( $operStatus && $adminStatus && $name && $alias && $lastChange )
 {
     foreach $snmpkey ( keys %{$name} )
     {
