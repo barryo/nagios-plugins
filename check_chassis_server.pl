@@ -194,19 +194,7 @@ sub checkMemory
     my $realfree  = undef;
     my $cached    = undef;
 
-    if( !defined( $response = $session->get_table( $snmpMemTable ) ) )
-    {
-        if( $session->error_status == 2 ) {
-            $answer = "OID not supported.";
-        } else {
-            $answer=$session->error;
-        }
-
-        $session->close;
-        $state = 'CRITICAL';
-        print( "$state: $answer,$snmpkey" );
-        exit $ERRORS{$state};
-    }
+    return if( !( $response = snmpGetTable( $snmpMemTable, 'memory' ) ) );
 
     foreach $snmpkey ( keys %{$response} )
     {
@@ -276,21 +264,7 @@ sub checkReboot
     my $snmpSysUpTime = '.1.3.6.1.2.1.1.3.0';
     my $sysuptime;
 
-    if( !defined( $response = $session->get_request( $snmpSysUpTime ) ) )
-    {
-        if( $session->error_status == 2 )
-        {
-            $answer = "OID not supported.";
-        }
-        else
-        {
-            $answer=$session->error;
-        }
-        $session->close;
-        $state = 'CRITICAL';
-        print ("$state: $answer,$snmpkey");
-        exit $ERRORS{$state};
-    }
+    return if( !( $response = snmpGetRequest( $snmpSysUpTime, 'system uptime' ) ) );
 
     # uptime in minutes
     $sysuptime = $response->{$snmpSysUpTime} / 100.0 / 60.0;
@@ -308,21 +282,7 @@ sub checkLoad
     my $snmpLoadValues    = '1.3.6.1.4.1.2021.10.1.3.';
     my $snmpLoadThres     = '1.3.6.1.4.1.2021.10.1.4.';
 
-    if( !defined( $response = $session->get_table( $snmpLoadTable ) ) )
-    {
-        if( $session->error_status == 2 )
-        {
-            $answer = "OID not supported.";
-        }
-        else
-        {
-            $answer=$session->error;
-        }
-        $session->close;
-        $state = 'CRITICAL';
-        print ("$state: $answer,$snmpkey");
-        exit $ERRORS{$state};
-    }
+    return if( !( $response = snmpGetRequest( $snmpLoadTable, 'system load' ) ) );
 
     foreach $int ( keys %LOAD_INTERVALS )
     {
@@ -330,17 +290,10 @@ sub checkLoad
         $loadthres{$int} = $response->{$snmpLoadThres . $LOAD_INTERVALS{$int}};
         printf( $int . ":\t" . $load{$int}  . "/" . $loadthres{$int} . "\n" ) if $verbose;
 
-        if( $load{$int} >= $loadthres{$int} )
-        {
-            &setstate( 'CRITICAL' );
-            if( $answer ) { $answer .= "<br />\n"; }
-            $answer .= $int . " Load Average is $load{$int}";
-        }
-        elsif( $load{$int} >= ( $loadthres{$int} * $loadwarn ) )
-        {
-            &setstate( 'WARNING' );
-            if( $answer ) { $answer .= "<br />\n"; }
-            $answer .= $int . " Load Average is $load{$int}";
+        if( $load{$int} >= $loadthres{$int} ) {
+            &setstate( 'CRITICAL', $int . " load average is $load{$int}" );
+        } elsif( $load{$int} >= ( $loadthres{$int} * $loadwarn ) ) {
+            &setstate( 'WARNING', $int . " load average is $load{$int}" );
         }
     }
 }
@@ -393,4 +346,50 @@ sub setstate {
     if( $answer ) { $answer .= "<br />\n"; }
 
     $answer .= $message;
+}
+
+sub snmpGetTable {
+    my $oid   = shift( @_ );
+    my $check = shift( @_ );
+
+    if( !defined( $response = $session->get_table( $oid ) ) )
+    {
+        if( $session->error_status() == 2 || $session->error() =~ m/requested table is empty or does not exist/i )
+        {
+            print "OID not supported for $check ($oid).\n" if $verbose;
+            return 0;
+        }
+
+        $answer = $session->error();
+        $session->close;
+
+        $state = 'CRITICAL';
+        print( "$state: $answer (in check for $check with OID: $oid)\n" );
+        exit $ERRORS{$state};
+    }
+
+    return $response;
+}
+
+sub snmpGetRequest {
+    my $oid   = shift( @_ );
+    my $check = shift( @_ );
+
+    if( !defined( $response = $session->get_request( $oid ) ) )
+    {
+        if( $session->error_status() == 2 || $session->error() =~ m/requested table is empty or does not exist/i )
+        {
+            print "OID not supported for $check ($oid).\n" if $verbose;
+            return 0;
+        }
+
+        $answer = $session->error();
+        $session->close;
+
+        $state = 'CRITICAL';
+        print( "$state: $answer (in check for $check with OID: $oid)\n" );
+        exit $ERRORS{$state};
+    }
+
+    return $response;
 }
