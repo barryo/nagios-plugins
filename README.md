@@ -70,6 +70,11 @@ site at http://www.barryodonovan.com/.
 Overview of Available Plugins
 -----------------------------
 
+### check_barracuda_lb_active.pl
+
+A script to check if a given Barracuda load balance in high availability state
+is in active (or inactive) mode for a given IP address.
+
 ### check_chassis_cisco.pl
 
 This script polls a Cisco switch or router and checks and generates alerts on the following items:
