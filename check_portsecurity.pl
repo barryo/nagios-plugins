@@ -52,7 +52,11 @@ my %CISCO_PORTSECURITY_STATES = (
     '3', 'SHUTDOWN'
 );
 
-my %port_states;
+my %port_states = (
+    '1', 0,
+    '2', 0,
+    '3', 0
+);
 
 my $status;
 my $TIMEOUT = 20;
