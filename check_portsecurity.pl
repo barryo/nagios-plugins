@@ -52,6 +52,8 @@ my %CISCO_PORTSECURITY_STATES = (
     '3', 'SHUTDOWN'
 );
 
+my %port_states;
+
 my $status;
 my $TIMEOUT = 20;
 my $state = "OK";
@@ -130,6 +132,11 @@ if( $securityTable && $nameTable && $aliasTable )
 
             print( "Port Security for $t_name - $t_alias - $CISCO_PORTSECURITY_STATES{$t_state}\n" ) if $verbose;
 
+            if( !defined( $port_states{$t_state} ) ) {
+                $port_states{$t_state} = 0;
+            }
+            $port_states{$t_state}++;
+
             if( $t_state == 2 && $alertOnSecureDown ) {
                 &setstate( 'WARNING', "Secure down alert for $t_name - $t_alias" );
             } elsif( $t_state == 0 ) {
@@ -146,7 +153,12 @@ if( $securityTable && $nameTable && $aliasTable )
 $session->close;
 
 if( $state eq 'OK' ) {
-    print "OK\n";
+    print "OK - ";
+
+    while( my ( $key, $value ) = each( %port_states ) ) {
+        print "$value $CISCO_PORTSECURITY_STATES{$key}; ";
+    }
+    print "\n";
 }
 else {
     print "$answer\n";

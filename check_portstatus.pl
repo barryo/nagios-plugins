@@ -183,6 +183,7 @@ if( $state eq 'OK' ) {
     while( my ( $key, $value ) = each( %port_states ) ) {
         print "$value $CISCO_PORT_OPER_STATES{$key}; ";
     }
+    print "\n";
 }
 else {
     print "$answer\n";
