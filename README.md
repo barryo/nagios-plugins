@@ -4,7 +4,7 @@ Nagios Plugins :: nagios-plugins
 Introduction
 ------------
 
-`nagios-plugins` is a collection of various plugins I have written and expaned
+`nagios-plugins` is a collection of various plugins I have written and expanded
 over the last ten years or so. They main goal of Nagios plugins that I write
 and release are:
 
@@ -23,7 +23,7 @@ and release are:
   provide an inventory of what it finds as well as show anything that is being
   skipped. OIDs searched for by the script but reported as not supported on
   the target device should really be skipped via various `--skip-xxx` options.
-* useful help available via `--help` or `-?`
+* useful help available via `--help` or `-?` or `--man``
 
 License
 -------
@@ -88,7 +88,7 @@ This script polls a Cisco switch or router and checks and generates alerts on th
 
 ### check_chassis_server.pl
 
-This scrip polls a Linux / BSD server and  checks and generates alerts on the following items:
+This script polls a Linux / BSD server and  checks and generates alerts on the following items:
 
 * a warning if the device was recently rebooted;
 * a warning / critical if the 1/5/15 min load average is above thresholds set in the servers SNMP config file;
@@ -97,6 +97,15 @@ This scrip polls a Linux / BSD server and  checks and generates alerts on the fo
 Note that you may want to set swap warning threshold low (default is 20%) as you will want to know
 if you're using swap. If anyone is very familiar with the BSD memory model, I'd appreciate it if they
 could look that section over as it's more suited for Linux right now.
+
+### check_disk_snmp.pl
+
+This script polls a Linux / BSD server and checks and generates alerts if disk utilisation
+approaches warning and critical thresholds. Example Nagios output:
+
+    OK - /var (/dev/sda7) 70%; /home (/dev/sda10) 74%; /tmp (/dev/sda8) 3%; /usr (/dev/sda5) 76%; /usr/local (/dev/sda6) 4%; / (/dev/sda9) 30%; /boot (/dev/sda2) 64%;
+
+There is comprehensive help via the `--man` switch.
 
 
 ### check_portsecurity.pl
