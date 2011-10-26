@@ -192,7 +192,7 @@ if( $operStatus && $adminStatus && $name && $alias && $lastChange )
             if( ( $sysuptime - $t_lastChange ) <= $window && ( $sysuptime - $t_lastChange ) >= 0 ) {
                 &setstate( 'WARNING',
                     sprintf( "Port state change to $CISCO_PORT_OPER_STATES{$t_state} %0.1f mins ago for ${t_name} [DESC: ${t_alias}] [Reason: %s]",
-                        $sysuptime - $t_lastChange, defined( $t_changeReason ) ? $t_changeReason : ''
+                        ( $sysuptime - $t_lastChange ) / 60.0, defined( $t_changeReason ) ? $t_changeReason : ''
                     )
                 );
             }
