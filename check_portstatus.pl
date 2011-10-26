@@ -133,6 +133,7 @@ if( !( $sysuptime = getSysUptime() ) ) {
     exit $ERRORS{$state};
 }
 
+printf( "System up time: %f\n", $sysuptime ) if $verbose;
 
 my $snmpPortOperStatusTable   = '1.3.6.1.2.1.2.2.1.8';
 my $snmpPortAdminStatusTable  = '1.3.6.1.2.1.2.2.1.7';
@@ -176,7 +177,7 @@ if( $operStatus && $adminStatus && $name && $alias && $lastChange )
                 $t_changeReason = '';
             }
 
-            print( "Port State for $t_name - $t_alias - $CISCO_PORT_OPER_STATES{$t_state} - change at $t_lastChange because $t_changeReason\n" ) if $verbose;
+            print( "Port State for $t_name - $t_alias - $CISCO_PORT_OPER_STATES{$t_state} - changed " . ( $sysuptime - $t_lastChange ) . " secs ago because $t_changeReason\n" ) if $verbose;
 
             if( !defined( $port_states{$t_state} ) ) {
                 $port_states{$t_state} = 0;
@@ -188,7 +189,7 @@ if( $operStatus && $adminStatus && $name && $alias && $lastChange )
             }
             $port_admin_states{$t_admin}++;
 
-            if( $t_lastChange != 0 && ( $sysuptime - $t_lastChange ) <= $window && ( $sysuptime - $t_lastChange ) > 0 ) {
+            if( ( $sysuptime - $t_lastChange ) <= $window && ( $sysuptime - $t_lastChange ) >= 0 ) {
                 &setstate( 'WARNING',
                     sprintf( "Port state change to $CISCO_PORT_OPER_STATES{$t_state} %0.1f mins ago for ${t_name} [DESC: ${t_alias}] [Reason: %s]",
                         $sysuptime - $t_lastChange, defined( $t_changeReason ) ? $t_changeReason : ''
