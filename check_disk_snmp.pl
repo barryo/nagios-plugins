@@ -2,6 +2,8 @@
 #
 # check_disk_snmp.pl - nagios plugin
 #
+# nagios: -epn
+#
 # Linux / BSD Disk Space Nagios Plugin
 #
 # Copyright (c) 2011, Barry O'Donovan <barry@opensolutions.ie>
