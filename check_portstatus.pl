@@ -177,7 +177,7 @@ if( $operStatus && $adminStatus && $name && $alias && $lastChange )
                 $t_changeReason = '';
             }
 
-            print( "Port State for $t_name - $t_alias - $CISCO_PORT_OPER_STATES{$t_state} - changed " . ( $sysuptime - $t_lastChange ) . " secs ago because $t_changeReason\n" ) if $verbose;
+            printf( "Port State for $t_name - $t_alias - $CISCO_PORT_OPER_STATES{$t_state} - changed %0.1f secs ago because $t_changeReason\n", ( $sysuptime - $t_lastChange ) ) if $verbose;
 
             if( !defined( $port_states{$t_state} ) ) {
                 $port_states{$t_state} = 0;
