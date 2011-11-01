@@ -76,6 +76,8 @@ my $devicesonly = 0;
 my $warning = 10;
 my $nowarningrecalc = 0;
 
+my $calcmethod = 1;
+
 # Just in case of problems, let's not hang Nagios
 $SIG{'ALRM'} = sub {
     print( "ERROR: No snmp response from $hostname\n" );
@@ -92,6 +94,7 @@ $status = GetOptions(
             "warning=i",         \$warning,
             "no-warning-recalc", \$nowarningrecalc,
             "devices-only",      \$devicesonly,
+            "calc-method=i",     \$calcmethod,
             "help|?",            \$help,
             "man",               \$manpage
 );
@@ -174,7 +177,12 @@ sub checkDiskSpace
                     next;
                 }
 
-                print( "Disk: $t_path ($t_device) $t_used/$t_total ($t_percentused\%) used with $t_avail [min: $t_minpercent]\n" ) if $verbose;
+                if( $calcmethod == 2 )
+                {
+                    $t_percentused = ( $t_total - $t_avail ) / ( $t_total / 100.0 );
+                }
+
+                print( "Disk: $t_path ($t_device) $t_used/$t_total ($t_percentused\%) used with $t_avail available [min: $t_minpercent]\n" ) if $verbose;
 
                 my $t_warning = $warning;
                 if( $t_minpercent < 10 && !$nowarningrecalc ) {
@@ -256,7 +264,8 @@ check_disk_snmp.pl --hostname <host> [options]
    --man               full manual page
    --warning           the percent offset from critical which will generate a warning
    --no-warning-recalc don't automatically recalculate the warning offset (see --man)
-   --devices-only   only check disks with devices in /dev/ on the server
+   --devices-only      only check disks with devices in /dev/ on the server
+   --calc-method       calculation method to use (default 1)
 
 =head1 OPTIONS AND ARGUMENTS
 
@@ -287,6 +296,11 @@ behavior. See --man for more details.
 =item B<--devices-only>
 
 Useful to ignore kernel and other virtual filesystems such as /proc, /sys, etc
+
+=item B<--calc-method>
+
+The calculation method to use when calculating free space. See --man for more information.
+
 
 =back
 
@@ -321,6 +335,26 @@ alert when usage reaches 90%. For C</var> then it would be 75% and 85% respectiv
 
 If the C<MINPERCENT%> for a disk is less that 10, then C<--warning> is automatically recalculated for
 that disk to C<MINPERCENT% * 2>. To stop this behavior, use C<--no-warning-recalc>.
+
+=head2 CALCULATION METHOD
+
+In practice some systems return unusual / unexpected values in the SNMP table. To get around this,
+we have defined multiple calculation methods:
+
+=over 8
+
+=item B<1>
+
+The default. Just takes the used percentage directly from the SNMP table.
+
+=item B<2>
+
+Calcutes the percentage used from the total and available data in the SNMP table
+ignoring the used data. I.e.
+
+C<$t_total - $t_avail ) / ( $t_total / 100.0 )>.
+
+=back
 
 =head1 AUTHOR
 
