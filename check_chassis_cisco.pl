@@ -72,6 +72,8 @@ my $response = undef;
 
 my $rebootWindow = 60;
 
+my $ignorepsunotpresent = 0;
+
 my $skipmem = 0;
 my $skiptemp = 0;
 my $skipfans = 0;
@@ -135,10 +137,11 @@ $status = GetOptions(
             "skip-cpu",         \$skipcpuall,
             "skip-cpu-5sec",    \$skipcpu{'5sec'},
             "skip-cpu-1min",    \$skipcpu{'1min'},
-            "skip-cpu-5min",    \$skipcpu{'5min'},
-            "thres-cpu-5sec=s", \$threscpuarg{'5sec'},
-            "thres-cpu-1min=s", \$threscpuarg{'1min'},
-            "thres-cpu-5min=s", \$threscpuarg{'5min'},
+            "skip-cpu-5min",         \$skipcpu{'5min'},
+            "thres-cpu-5sec=s",      \$threscpuarg{'5sec'},
+            "thres-cpu-1min=s",      \$threscpuarg{'1min'},
+            "thres-cpu-5min=s",      \$threscpuarg{'5min'},
+            "ignore-psu-notpresent", \$ignorepsunotpresent,
             "help|?",               \$help,
             "verbose",          \$verbose,
             "reboot=i",         \$rebootWindow
@@ -353,7 +356,9 @@ sub checkPower
                 $psudata .= ( $t_state eq 'NORMAL' ? ' OK' : " $t_state" );
 
                 if( $t_state =~ m/WARNING/i || $t_state =~ m/SHUTDOWN/i || $t_state =~ m/NOTPRESENT/i || $t_state =~ m/NOTFUNCTIONING/i ) {
-                    &setstate( 'WARNING', "PSU state for $t_desc is: $t_state" );
+                    if( !( $t_state =~ m/NOTPRESENT/i && $ignorepsunotpresent ) ) {
+                        &setstate( 'WARNING', "PSU state for $t_desc is: $t_state" );
+                    }
                 } elsif( $t_state =~ m/CRITICAL/i ) {
                     &setstate( 'CRITICAL', "PSU state for $t_desc is: $t_state" );
                 } elsif( $t_state !~ m/^NORMAL$/i ) {
@@ -496,7 +501,8 @@ sub usage {
   printf "  --memcrit <integer>     Percentage of memory usage for critical (using: " . $memcrit . ")\n\n";
   printf "  --skip-temp             Skip temperature checks\n\n";
   printf "  --skip-fans             Skip fan checks\n\n";
-  printf "  --skip-psu              Skip PSU(s) checks\n\n";
+  printf "  --skip-psu              Skip PSU(s) checks\n";
+  printf "  --ignore-psu-notpresent Ignore PSUs that are not installed\n\n";
   printf "  --skip-reboot           Skip reboot check\n";
   printf "  --lastcheck             Nagios \$LASTSERVICECHECK\$ macro. Used by reboot check such that if the\n";
   printf "                          last reboot was within the last check, then an alert if generated. Overrides\n";
