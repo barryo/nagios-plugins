@@ -516,8 +516,8 @@ sub usage {
   printf "  --memwarn <integer>     Percentage of memory usage for warning (using: " . $memwarn . ")\n";
   printf "  --memcrit <integer>     Percentage of memory usage for critical (using: " . $memcrit . ")\n\n";
   printf "  --skip-temp             Skip temperature checks\n";
-  printf "  --tempwarn <integer>    Degrees Celcius for warning (in addition to device's setting)\n";
-  printf "  --tempcrit <integer>    Degrees Celcius for critical (in addition to device's setting)\n";
+  printf "  --tempwarn <integer>    Degrees Celsius for warning (in addition to device's setting)\n";
+  printf "  --tempcrit <integer>    Degrees Celsius for critical (in addition to device's setting)\n";
   printf "  --skip-fans             Skip fan checks\n\n";
   printf "  --skip-psu              Skip PSU(s) checks\n";
   printf "  --ignore-psu-notpresent Ignore PSUs that are not installed\n\n";
