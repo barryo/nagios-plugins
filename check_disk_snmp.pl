@@ -173,6 +173,11 @@ sub checkDiskSpace
                 my $t_used        = $response->{$snmpUsed         . '.' . $t_index};
                 my $t_percentused = $response->{$snmpPercentUsed  . '.' . $t_index};
 
+
+                if( !defined( $t_minpercent ) ) {
+                    $t_minpercent = 0;
+                }
+                
                 if( $devicesonly && $t_device !~ m/^\/dev\// ) {
                     next;
                 }

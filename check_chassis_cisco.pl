@@ -255,14 +255,14 @@ sub checkTemperature
                 $t_index = $1;
 
                 my $t_desc  = $response->{$snmpTempDesc  . '.' . $t_index};
-                my $t_value = $response->{$snmpTempValue . '.' . $t_index};
-                my $t_thres = $response->{$snmpTempThres . '.' . $t_index};
+                my $t_value = defined( $response->{$snmpTempValue . '.' . $t_index} ) ? $response->{$snmpTempValue . '.' . $t_index} : '?';
+                my $t_thres = defined( $response->{$snmpTempThres . '.' . $t_index} ) ? $response->{$snmpTempThres . '.' . $t_index} : '?';
                 my $t_state = $CISCO_ENVMON_STATES{$response->{$snmpTempState . '.' . $t_index}};
 
 
                 print( "Temp: $t_desc $t_value/$t_thres $t_state\n" ) if $verbose;
                 $tempdata = "Temp: " if( !defined( $tempdata ) );
-                $tempdata .= "$t_value/$t_thres ";
+                $tempdata .= ( $t_value !~ m/\?/ ? "$t_value/$t_thres " : "$t_state " );
 
                 if( $t_state =~ m/WARNING/i || $t_state =~ m/SHUTDOWN/i || $t_state =~ m/NOTPRESENT/i || $t_state =~ m/NOTFUNCTIONING/i ) {
                     &setstate( 'WARNING', "Temperate state for $t_desc is: $t_state ($t_value/$t_thres)" );
