@@ -241,9 +241,10 @@ sub checkTemperature
                 $i++;
                 $t_index = $1;
 
-                my $t_actual   = fahrToCel( $response->{$snmpTempActual   . '.' . $t_index} );
-                my $t_warning  = fahrToCel( $response->{$snmpTempWarning  . '.' . $t_index} );
-                my $t_shutdown = fahrToCel( $response->{$snmpTempShutdown . '.' . $t_index} );
+                my $t_actual   = convertToCel( $response->{$snmpTempActual   . '.' . $t_index} );
+                my $t_warning  = convertToCel( $response->{$snmpTempWarning  . '.' . $t_index} );
+                $t_warning = '64.0' if ( $t_warning == 0 ); 
+                my $t_shutdown = convertToCel( $response->{$snmpTempShutdown . '.' . $t_index} );
 
                 print( "Temp #$t_index: $t_actual (Warn: $t_warning    Shutdown: $t_shutdown)\n" ) if $verbose;
                 $tempdata  = "Temp (A/W/C): " if( !defined( $tempdata ) );
@@ -610,8 +611,9 @@ sub snmpGetRequest {
     return $response;
 }
 
-sub fahrToCel {
+sub convertToCel {
     my $t = shift( @_ );
 
-    return sprintf( "%0.1f", ( $t - 32.0 ) / 1.8 );
+    # it seems Brocade reports in units of 0.5 Celsius
+    return sprintf( "%0.1f", $t / 2.0 );
 }
