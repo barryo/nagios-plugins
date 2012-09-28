@@ -31,7 +31,8 @@ License
 Unless stated otherwise at the top of the script of its help output, all scripts
 are:
 
-    Copyright (c) 2011, Barry O'Donovan <barry@opensolutions.ie>
+    Copyright (c) 2004 - 2012, Barry O'Donovan <info@opensolutions.ie>
+    Copyright (c) 2004 - 2012, Open Source Solutions Limited <info@opensolutions.ie>
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without modification,
@@ -69,6 +70,10 @@ site at http://www.barryodonovan.com/.
 
 Overview of Available Plugins
 -----------------------------
+
+### check_rsnapshot.php
+
+A script to check backups made via rsnapshot. See https://github.com/barryo/nagios-plugins/wiki/check_rsnapshot.php.
 
 ### check_barracuda_lb_active.pl
 
