@@ -104,7 +104,7 @@ my $memdata = undef;
 
 my $lastcheck = undef;
 
-
+my $skipothers = 0;
 
 
 # Just in case of problems, let's not hang Nagios
@@ -132,7 +132,8 @@ $status = GetOptions(
             "skip-cpu",         \$skipcpuall,
             "skip-cpu-1sec",    \$skipcpu{'1sec'},
             "skip-cpu-5sec",    \$skipcpu{'5sec'},
-            "skip-cpu-1min",         \$skipcpu{'1min'},
+            "skip-cpu-1min",    \$skipcpu{'1min'},
+            "skip-others",      \$skipothers,
             "thres-cpu-1sec=s",      \$threscpuarg{'1sec'},
             "thres-cpu-5sec=s",      \$threscpuarg{'5sec'},
             "thres-cpu-1min=s",      \$threscpuarg{'1min'},
@@ -190,7 +191,9 @@ if( !$skipmem ) {
     checkMemory();
 }
 
-checkOthers();
+if( !$skipothers ) {
+    checkOthers();
+}
 
 $session->close;
 
@@ -526,6 +529,9 @@ sub usage {
   printf "  --lastcheck             Nagios \$LASTSERVICECHECK\$ macro. Used by reboot check such that if the\n";
   printf "                          last reboot was within the last check, then an alert if generated. Overrides\n";
   printf "                          --reboot to ensure reboots are caught\n\n";
+  
+  printf "  --skip-others           Skip 'other' checks\n\n";
+  
   printf "  --skip-cpu              Skip all CPU utilisation checks\n";
   printf "  --skip-cpu-5sec         Skip 5sec CPU utilisation check\n";
   printf "  --skip-cpu-1min         Skip 1min CPU utilisation check\n";
