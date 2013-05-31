@@ -53,7 +53,7 @@
 
 // This script sends Nagios plugins to Pushover
 //
-// See:
+// See: http://www.barryodonovan.com/index.php/2013/05/31/nagios-icinga-alerts-via-pushover
 //
 // USAGE: notify-by-pushover.php <HOST/SERVICE> <APP_KEY> <USER_KEY> <TYPE> <STATE>
 

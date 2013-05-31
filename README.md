@@ -125,3 +125,9 @@ This script will issue warnings if the port status on any Ethernet (by default) 
 switch has changed within the last hour (by default). I.e. a port up or a port down event.
 
 
+### notify-by-pushover.php
+
+This script sends Nagios plugins to Pushover - see https://pushover.net/ and 
+http://www.barryodonovan.com/index.php/2013/05/31/nagios-icinga-alerts-via-pushover
+
+
