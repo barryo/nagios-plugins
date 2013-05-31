@@ -455,7 +455,7 @@ sub checkCPU
             next;
         }
 
-        my $util = $response->{$t_oid};
+        my $util = $response->{$t_oid} || 'UNKNOWN';
 
         print( "CPU: $t_time - $util%\n" ) if $verbose;
         $cpudata = "CPU:" if( !defined( $cpudata ) );
@@ -472,10 +472,12 @@ sub checkCPU
             }
         }
 
-        if( $util >= $threscpu{$t_time . 'c'} ) {
-            &setstate( 'CRITICAL', "$t_time CPU Usage $util%" );
-        } elsif( $util >= $threscpu{$t_time . 'w'} ) {
-            &setstate( 'WARNING', "$t_time CPU Usage $util%" );
+        if( $util ne 'UNKNOWN' ) {
+            if(  $util >= $threscpu{$t_time . 'c'} ) {
+                &setstate( 'CRITICAL', "$t_time CPU Usage $util%" );
+            } elsif( $util >= $threscpu{$t_time . 'w'} ) {
+                &setstate( 'WARNING', "$t_time CPU Usage $util%" );
+            }
         }
     }
 
