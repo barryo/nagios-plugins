@@ -920,6 +920,8 @@ function parseArguments()
                             _log(  "Bad period provided. Use help for more details.", LOG__ERROR );
                             exit( STATUS_UNKNOWN );
                         }
+                        else
+                            break;
                     }
                 }
                 $i++;
