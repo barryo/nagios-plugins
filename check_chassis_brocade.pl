@@ -46,7 +46,7 @@ my %ERRORS = (
 
 
 my $status;
-my $TIMEOUT = 20;
+my $timeout = 20;
 my $state = "OK";
 my $answer = "";
 my $int;
@@ -106,15 +106,6 @@ my $lastcheck = undef;
 
 my $skipothers = 0;
 
-
-# Just in case of problems, let's not hang Nagios
-$SIG{'ALRM'} = sub {
-    print( "ERROR: No snmp response from $hostname\n" );
-    exit $ERRORS{"UNKNOWN"};
-};
-alarm( $TIMEOUT );
-
-
 $status = GetOptions(
             "hostname=s",       \$hostname,
             "community=s",      \$community,
@@ -138,10 +129,18 @@ $status = GetOptions(
             "thres-cpu-5sec=s",      \$threscpuarg{'5sec'},
             "thres-cpu-1min=s",      \$threscpuarg{'1min'},
             "ignore-psu-notpresent", \$ignorepsunotpresent,
+            "timeout=i",        \$timeout,
             "help|?",               \$help,
             "verbose",          \$verbose,
             "reboot=i",         \$rebootWindow
 );
+
+# Just in case of problems, let's not hang Nagios
+$SIG{'ALRM'} = sub {
+    print( "ERROR: No snmp response from $hostname\n" );
+    exit $ERRORS{"UNKNOWN"};
+};
+alarm( $timeout);
 
 if( !$status || $help ) {
     usage();
@@ -350,6 +349,7 @@ sub checkPower
                 my $t_desc  = $response->{$snmpPowerDesc  . '.' . $t_index};
                 my $t_state = $PSU_STATES{$response->{$snmpPowerState . '.' . $t_index}};
 
+		if ( $ignorepsunotpresent && ($t_desc =~ /not present/) ) { $t_state = "N/A"; }
 
                 print( "PSU: $t_desc - $t_state\n" ) if $verbose;
                 $psudata = "PSUs:" if( !defined( $psudata ) );
@@ -357,7 +357,7 @@ sub checkPower
 
                 if( $t_state =~ m/FAILURE/i ) {
                     &setstate( 'CRITICAL', "PSU state for $t_desc: $t_state" );
-                } elsif( $t_state !~ m/^NORMAL$/i ) {
+                } elsif( $t_state !~ m/^NORMAL|N\/A$/i ) {
                     &setstate( 'WARNING', "PSU state for $t_desc: $t_state" );
                 }
             }
@@ -516,6 +516,7 @@ sub usage {
   printf "  --hostname              The hostname to check\n";
   printf "  --port                  The port to query SNMP on (using: $port)\n";
   printf "  --community             The SNMP access community (using: $community)\n\n";
+  printf "  --timeout <integer>     Execution timeout in seconds (using: " . $timeout. ")\n\n";
   printf "  --skip-mem              Skip memory checks\n";
   printf "  --memwarn <integer>     Percentage of memory usage for warning (using: " . $memwarn . ")\n";
   printf "  --memcrit <integer>     Percentage of memory usage for critical (using: " . $memcrit . ")\n\n";
