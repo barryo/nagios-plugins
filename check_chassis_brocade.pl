@@ -212,18 +212,20 @@ if( $state eq 'OK' )
     print $fandata if( defined( $fandata ) && !$skipfans );
     print $psudata if( defined( $psudata ) && !$skippsu );
     printf( "Up %0.2f days", $uptime ) if( !$skipreboot );
-    if ($perf) {
-        print "|";
-        print $cpudataperf if( !$skipcpuall && defined( $cpudataperf ) );
-        print $memdataperf if( !$skipmem && defined( $memdataperf ) );
-        print $tempdataperf if( !$skiptemp && defined( $tempdataperf ) );
-    }
-    print( "\n" );
 }
 else
 {
-    print "$answer\n";
+    print "$answer";
 }
+
+if ($perf) {
+    print "|";
+    print $cpudataperf if( !$skipcpuall && defined( $cpudataperf ) );
+    print $memdataperf if( !$skipmem && defined( $memdataperf ) );
+    print $tempdataperf if( !$skiptemp && defined( $tempdataperf ) );
+}
+
+print( "\n" );
 
 exit $ERRORS{$state};
 
