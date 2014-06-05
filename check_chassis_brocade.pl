@@ -54,6 +54,7 @@ my $snmpkey;
 my $key;
 my $community = "public";
 my $port = 161;
+my $perf = 0;
 
 my $hostname = undef;
 my $session;
@@ -102,6 +103,10 @@ my $psudata = undef;
 my $cpudata = undef;
 my $memdata = undef;
 
+my $tempdataperf = undef;
+my $cpudataperf = undef;
+my $memdataperf = undef;
+
 my $lastcheck = undef;
 
 my $skipothers = 0;
@@ -130,6 +135,7 @@ $status = GetOptions(
             "thres-cpu-1min=s",      \$threscpuarg{'1min'},
             "ignore-psu-notpresent", \$ignorepsunotpresent,
             "timeout=i",        \$timeout,
+            "perf",             \$perf,
             "help|?",               \$help,
             "verbose",          \$verbose,
             "reboot=i",         \$rebootWindow
@@ -206,12 +212,20 @@ if( $state eq 'OK' )
     print $fandata if( defined( $fandata ) && !$skipfans );
     print $psudata if( defined( $psudata ) && !$skippsu );
     printf( "Up %0.2f days", $uptime ) if( !$skipreboot );
-    print( "\n" );
 }
 else
 {
-    print "$answer\n";
+    print "$answer";
 }
+
+if ($perf) {
+    print "|";
+    print $cpudataperf if( !$skipcpuall && defined( $cpudataperf ) );
+    print $memdataperf if( !$skipmem && defined( $memdataperf ) );
+    print $tempdataperf if( !$skiptemp && defined( $tempdataperf ) );
+}
+
+print( "\n" );
 
 exit $ERRORS{$state};
 
@@ -251,6 +265,7 @@ sub checkTemperature
                 print( "Temp #$t_index: $t_actual (Warn: $t_warning    Shutdown: $t_shutdown)\n" ) if $verbose;
                 $tempdata  = "Temp (A/W/C): " if( !defined( $tempdata ) );
                 $tempdata .= sprintf( "%0.1f/%0.1f/%0.1f; ", $t_actual, $t_warning, $t_shutdown );
+                $tempdataperf .= sprintf( "Temp=%0.1fdeg;%0.1f;%0.1f ", $t_actual, $t_warning, $t_shutdown );
 
                 if( $t_actual >= $t_warning ) {
                     &setstate( 'CRITICAL', "Temperature approaching SHUTDOWN threshold: $t_actual/$t_shutdown" );
@@ -382,6 +397,8 @@ sub checkMemory
 
     printf( "Memory: %d%% used\n", $memused ) if $verbose;
 
+    $memdataperf = sprintf( "Memory=%d%%;%d;%d ", $memused, $memwarn, $memcrit );
+
     if( $memused >= $memcrit ) {
         &setstate( 'CRITICAL', sprintf( "Memory Usage at %d%%", $memused ) );
     } elsif( $memused >= $memwarn ) {
@@ -495,6 +512,7 @@ sub checkCPU
                 exit $ERRORS{"UNKNOWN"};
             }
         }
+        $cpudataperf .= "CPU_$t_time=$util%" . ";" . $threscpu{$t_time.'w'}. ";" . $threscpu{$t_time.'c'} . " ";
 
         if( $util >= $threscpu{$t_time . 'c'} ) {
             &setstate( 'CRITICAL', "$t_time CPU Usage $util%" );
@@ -516,7 +534,8 @@ sub usage {
   printf "  --hostname              The hostname to check\n";
   printf "  --port                  The port to query SNMP on (using: $port)\n";
   printf "  --community             The SNMP access community (using: $community)\n\n";
-  printf "  --timeout <integer>     Execution timeout in seconds (using: " . $timeout. ")\n\n";
+  printf "  --timeout <integer>     Execution timeout in seconds (using: " . $timeout. ")\n";
+  printf "  --perf                  Produce performance data output\n\n";
   printf "  --skip-mem              Skip memory checks\n";
   printf "  --memwarn <integer>     Percentage of memory usage for warning (using: " . $memwarn . ")\n";
   printf "  --memcrit <integer>     Percentage of memory usage for critical (using: " . $memcrit . ")\n\n";
