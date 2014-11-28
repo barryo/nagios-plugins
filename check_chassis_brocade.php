@@ -84,7 +84,7 @@ $normals   = "";
 $cmdargs = [
     'port'               => '161',
     'log_level'          => LOG__NONE,
-    'memwarn'            => 70,
+    'memwarn'            => 80,
     'memcrit'            => 90,
     'reboot'             => 3600,
     'thres-cpu-1sec'     => '95,98',
@@ -146,9 +146,11 @@ function checkTemperature()
     }
     catch( OSS_SNMP\Exception $e )
     {
+       /* Temp not supported
         setStatus( STATUS_UNKNOWN );
         $unknowns .= "Temperature unknown - possibly not supported on platform? Use --skip-temp. ";
         _log( "WARNING: Temperature unknown - possibly not supported on platform? Use --skip-temp.\n", LOG__ERROR );
+        */
         return;
     }
 
@@ -387,51 +389,76 @@ function checkOthers()
 
     _log( "========== Others check start ==========", LOG__DEBUG );
 
-    if( $snmp->useFoundry_Chassis()->isQueueOverflow() )
+    try
     {
-        _log( "Error - queue overflow indicated", LOG__VERBOSE );
-        setStatus( STATUS_CRITICAL );
-        $criticals .= "Queue overflow indicated. ";
+        if( $snmp->useFoundry_Chassis()->isQueueOverflow() )
+        {
+            _log( "Error - queue overflow indicated", LOG__VERBOSE );
+            setStatus( STATUS_CRITICAL );
+            $criticals .= "Queue overflow indicated. ";
+        }
+        else
+            _log( "OK - queue overflow not indicated", LOG__VERBOSE );
     }
-    else
-        _log( "OK - queue overflow not indicated", LOG__VERBOSE );
+    catch( \OSS_SNMP\Exception $e )
+    { /* not supported on this platform */ }
 
-    if( $snmp->useFoundry_Chassis()->isBufferShortage() )
+    try
     {
-        _log( "Error - buffer shortage indicated", LOG__VERBOSE );
-        setStatus( STATUS_CRITICAL );
-        $criticals .= "Buffer shortage indicated. ";
+        if( $snmp->useFoundry_Chassis()->isBufferShortage() )
+        {
+            _log( "Error - buffer shortage indicated", LOG__VERBOSE );
+            setStatus( STATUS_CRITICAL );
+            $criticals .= "Buffer shortage indicated. ";
+        }
+        else
+            _log( "OK - buffer shortage not indicated", LOG__VERBOSE );
     }
-    else
-        _log( "OK - buffer shortage not indicated", LOG__VERBOSE );
+    catch( \OSS_SNMP\Exception $e )
+    { /* not supported on this platform */ }
 
-    if( $snmp->useFoundry_Chassis()->isDMAFailure() )
+    try
     {
-        _log( "Error - DMA failure indicated", LOG__VERBOSE );
-        setStatus( STATUS_CRITICAL );
-        $criticals .= "DMA failure indicated. ";
+        if( $snmp->useFoundry_Chassis()->isDMAFailure() )
+        {
+            _log( "Error - DMA failure indicated", LOG__VERBOSE );
+            setStatus( STATUS_CRITICAL );
+            $criticals .= "DMA failure indicated. ";
+        }
+        else
+            _log( "OK - DMA failure not indicated", LOG__VERBOSE );
     }
-    else
-        _log( "OK - DMA failure not indicated", LOG__VERBOSE );
+    catch( \OSS_SNMP\Exception $e )
+    { /* not supported on this platform */ }
 
-    if( $snmp->useFoundry_Chassis()->isResourceLow() )
+    try
     {
-        _log( "Error - low resources indicated", LOG__VERBOSE );
-        setStatus( STATUS_CRITICAL );
-        $criticals .= "Low resources indicated. ";
+        if( $snmp->useFoundry_Chassis()->isResourceLow() )
+        {
+            _log( "Error - low resources indicated", LOG__VERBOSE );
+            setStatus( STATUS_CRITICAL );
+            $criticals .= "Low resources indicated. ";
+        }
+        else
+            _log( "OK - low resources not indicated", LOG__VERBOSE );
     }
-    else
-        _log( "OK - low resources not indicated", LOG__VERBOSE );
+    catch( \OSS_SNMP\Exception $e )
+    { /* not supported on this platform */ }
 
-    if( $snmp->useFoundry_Chassis()->isExcessiveError() )
+    try
     {
-        _log( "Error - excessive errors indicated", LOG__VERBOSE );
-        setStatus( STATUS_CRITICAL );
-        $criticals .= "Excessive errors indicated. ";
+        if( $snmp->useFoundry_Chassis()->isExcessiveError() )
+        {
+            _log( "Error - excessive errors indicated", LOG__VERBOSE );
+            setStatus( STATUS_CRITICAL );
+            $criticals .= "Excessive errors indicated. ";
+        }
+        else
+            _log( "OK - excessive errors not indicated", LOG__VERBOSE );
     }
-    else
-        _log( "OK - excessive errors not indicated", LOG__VERBOSE );
-
+    catch( \OSS_SNMP\Exception $e )
+    { /* not supported on this platform */ }
+  
     _log( "========== Others check end ==========", LOG__DEBUG );
 }
 
