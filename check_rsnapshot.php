@@ -735,6 +735,7 @@ function parseConfig( $confFile, $primary = true )
                 break;
 
             case "retain":
+            case "interval":
                 _log( sprintf( "PARSING CONF: found retention period: %s => %s", $tokens[1], $tokens[2] ), LOG__DEBUG );
                 $cmdargs["retain"][ $tokens[1] ] = $tokens[2];
                 break;
@@ -919,6 +920,8 @@ function parseArguments()
                             _log(  "Bad period provided. Use help for more details.", LOG__ERROR );
                             exit( STATUS_UNKNOWN );
                         }
+                        else
+                            break;
                     }
                 }
                 $i++;
