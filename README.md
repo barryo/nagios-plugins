@@ -25,14 +25,24 @@ and release are:
   the target device should really be skipped via various `--skip-xxx` options.
 * useful help available via `--help` or `-?` or `--man``
 
+Installation
+------------
+
+```sh
+git clone https://github.com/barryo/nagios-plugins.git
+cd nagios-plugins/
+git submodule init
+git submodule update
+```
+
 License
 -------
 
 Unless stated otherwise at the top of the script of its help output, all scripts
 are:
 
-    Copyright (c) 2004 - 2012, Barry O'Donovan <info@opensolutions.ie>
-    Copyright (c) 2004 - 2012, Open Source Solutions Limited <info@opensolutions.ie>
+    Copyright (c) 2004 - 2014, Barry O'Donovan <info@opensolutions.ie>
+    Copyright (c) 2004 - 2014, Open Source Solutions Limited <info@opensolutions.ie>
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without modification,
@@ -89,6 +99,30 @@ This script polls a Cisco switch or router and checks and generates alerts on th
 * a warning / critical if any found fans are in a non-normal state;
 * a warning / critical if any found PSUs are in a non-normal state;
 * a warning / critical if the 5 sec / 1 min / 5 min CPU utilisation is above set thresholds;
+* a warning / critical if the memory utilisation is above set thresholds.
+
+### check_chassis_brocade.pl / .php
+
+**NB:** the .php version is more modern.
+
+This script polls a Brocade switch or router and checks and generates alerts on the following items:
+
+* a warning if the device was recently rebooted;
+* a warning / critical if any found temperature sensors are in a non-normal state;
+* a warning / critical if any found fans are in a non-normal state;
+* a warning / critical if any found PSUs are in a non-normal state;
+* a warning / critical if the 5 sec / 1 min / 5 min CPU utilisation is above set thresholds;
+* a warning / critical if the memory utilisation is above set thresholds.
+
+### check_chassis_extreme.php
+
+This script polls an Extreme Networks switch or router and checks and generates alerts on the following items:
+
+* a warning if the device was recently rebooted;
+* a warning / critical if any found temperature sensors are in a non-normal state;
+* a warning / critical if any found fans are in a non-normal state;
+* a warning / critical if any found PSUs are in a non-normal state;
+* a warning / critical if the 5 sec CPU utilisation is above set thresholds;
 * a warning / critical if the memory utilisation is above set thresholds.
 
 ### check_chassis_server.pl
