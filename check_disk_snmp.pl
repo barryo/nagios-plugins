@@ -144,13 +144,14 @@ sub checkDiskSpace
 {
     my $snmpDiskTable     = '1.3.6.1.4.1.2021.9.1';
 
-    my $snmpPath        = $snmpDiskTable . '.2';
-    my $snmpDevice      = $snmpDiskTable . '.3';
-    my $snmpMinPercent  = $snmpDiskTable . '.5';
-    my $snmpTotal       = $snmpDiskTable . '.6';
-    my $snmpAvail       = $snmpDiskTable . '.7';
-    my $snmpUsed        = $snmpDiskTable . '.8';
-    my $snmpPercentUsed = $snmpDiskTable . '.9';
+    my $snmpPath         = $snmpDiskTable . '.2';
+    my $snmpDevice       = $snmpDiskTable . '.3';
+    my $snmpMinPercent   = $snmpDiskTable . '.5';
+    my $snmpTotal        = $snmpDiskTable . '.6';
+    my $snmpAvail        = $snmpDiskTable . '.7';
+    my $snmpUsed         = $snmpDiskTable . '.8';
+    my $snmpPercentUsed  = $snmpDiskTable . '.9';
+    my $snmpPercentINode = $snmpDiskTable . '.10';
 
     return if( !( $response = snmpGetTable( $snmpDiskTable, 'disk table' ) ) );
 
@@ -165,41 +166,54 @@ sub checkDiskSpace
             {
                 my $t_index = $1;
 
-                my $t_path        = $response->{$snmpPath         . '.' . $t_index};
-                my $t_device      = $response->{$snmpDevice       . '.' . $t_index};
-                my $t_minpercent  = $response->{$snmpMinPercent   . '.' . $t_index};
-                my $t_total       = $response->{$snmpTotal        . '.' . $t_index};
-                my $t_avail       = $response->{$snmpAvail        . '.' . $t_index};
-                my $t_used        = $response->{$snmpUsed         . '.' . $t_index};
-                my $t_percentused = $response->{$snmpPercentUsed  . '.' . $t_index};
+                my $t_path         = $response->{$snmpPath          . '.' . $t_index};
+                my $t_device       = $response->{$snmpDevice        . '.' . $t_index};
+                my $t_minpercent   = $response->{$snmpMinPercent    . '.' . $t_index};
+                my $t_total        = $response->{$snmpTotal         . '.' . $t_index};
+                my $t_avail        = $response->{$snmpAvail         . '.' . $t_index};
+                my $t_used         = $response->{$snmpUsed          . '.' . $t_index};
+                my $t_percentused  = $response->{$snmpPercentUsed   . '.' . $t_index};
+                my $t_percentinode = $response->{$snmpPercentINode  . '.' . $t_index};
 
 
                 if( !defined( $t_minpercent ) ) {
                     $t_minpercent = 0;
                 }
-                
+
                 if( $devicesonly && $t_device !~ m/^\/dev\// ) {
                     next;
                 }
 
-                if( $calcmethod == 2 )
-                {
+                if( $calcmethod == 2 ) {
                     $t_percentused = ( $t_total - $t_avail ) / ( $t_total / 100.0 );
                 }
 
-                print( "Disk: $t_path ($t_device) $t_used/$t_total ($t_percentused\%) used with $t_avail available [min: $t_minpercent]\n" ) if $verbose;
+                if( !defined( $t_percentinode ) ) {
+                    $t_percentinode = 'UNKNOWN';
+                }
+
+                print( "Disk: $t_path ($t_device) $t_used/$t_total ($t_percentused\%) used with $t_avail available [min: $t_minpercent]"
+                    . ". inode usage: $t_percentinode%%\n" ) if $verbose;
 
                 my $t_warning = $warning;
                 if( $t_minpercent < 10 && !$nowarningrecalc ) {
                     $t_warning = $t_minpercent * 2;
                 }
 
-                $diskstats .= sprintf( "%s (%s) %d%%; ", $t_path, $t_device, $t_percentused );
+                $diskstats .= sprintf( "%s (%s) %d%% (inodes: %d%%); ", $t_path, $t_device, $t_percentused, $t_percentinode );
 
                 if( $t_percentused >= ( 100 - $t_minpercent ) ) {
                     &setstate( 'CRITICAL', "Disk usage for $t_path ($t_device) is $t_percentused\%" );
                 } elsif( $t_percentused >= ( 100 - $t_minpercent - $t_warning ) ) {
                     &setstate( 'WARNING', "Disk usage for $t_path ($t_device) is $t_percentused\%" );
+                }
+
+                if( $t_percentinode != 'UNKNOWN' ) {
+                    if( $t_percentinode >= ( 100 - $t_minpercent ) ) {
+                        &setstate( 'CRITICAL', "Disk inode usage for $t_path ($t_device) is $t_percentinode\%" );
+                    } elsif( $t_percentinode >= ( 100 - $t_minpercent - $t_warning ) ) {
+                        &setstate( 'WARNING', "Disk inode usage for $t_path ($t_device) is $t_percentinode\%" );
+                    }
                 }
             }
         }
