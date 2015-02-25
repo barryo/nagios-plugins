@@ -759,6 +759,12 @@ function parseConfig( $confFile, $primary = true )
                 $cmdargs["backup"][] = $tokens;
                 break;
 
+            case "backup_script":
+                array_shift( $tokens );
+                _log( sprintf( "PARSING CONF: found backup_script: %s", implode( ' ', $tokens ) ), LOG__DEBUG );
+                $cmdargs["backup"][] = $tokens;
+                break;
+
             case "#NAGIOS":
                 if( $tokens[1] == "TPERIOD" )
                 {
