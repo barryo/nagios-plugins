@@ -310,11 +310,11 @@ function minsizeCheck()
         foreach( $params as $k => $i )
         {
             if( strtolower( substr( $i, -1 ) ) == "k" )
-                $params[$k] = substr( $i, -1 ) * 1024;
+                $params[$k] = substr( $i, 0, -1 ) * 1024;
             else if( strtolower( substr( $i, -1 ) ) == "m" )
-                $params[$k] = substr( $i, -1 ) * 1024 * 1024;
+                $params[$k] = substr( $i, 0, -1 ) * 1024 * 1024;
             else if( strtolower( substr( $i, -1 ) ) == "g" )
-                $params[$k] = substr( $i, -1 ) * 1024 * 1024 * 1024;
+                $params[$k] = substr( $i, 0, -1 ) * 1024 * 1024 * 1024;
         }
 
         // we should only really do this for the second last minimum period
