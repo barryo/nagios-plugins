@@ -240,30 +240,30 @@ function minfilesCheck()
 
         _log( "Result: $result", LOG__DEBUG );
 
-        if( !is_numeric( $result ) || !intval( $result ) )
+        if( !is_numeric( $result ) || !ctype_digit( $result ) )
         {
             _log( sprintf( "ERROR: Unexpected result in minfiles check for '%s'" , $alias ), LOG__ERROR );
             continue;
         }
 
-        $result = intval( $result );
+	$result = (float) $result;
 
         if( $result < $params[1] )
         {
-            $m = sprintf( "Minfiles check for '%s' is %d, expected >= %d", $alias, $result, $params[1] );
+            $m = sprintf( "Minfiles check for '%s' is %.0f, expected >= %.0f", $alias, $result, $params[1] );
             _log( "CRITICAL: $m", LOG__VERBOSE );
             setStatus( STATUS_CRITICAL );
             $criticals .= $m;
         }
         elseif( $result < $params[0] )
         {
-            $m = sprintf( "Minfiles check for '%s' is %d, expected >= %d", $alias, $result, $params[1] );
+            $m = sprintf( "Minfiles check for '%s' is %.0f, expected >= %.0f", $alias, $result, $params[1] );
             _log( "WARNING: $m", LOG__VERBOSE );
             setStatus( STATUS_WARNING );
             $warnings .= $m;
         }
         else
-            _log( sprintf( "INFO: Minfiles passed for '%s' - found %d, required >= %d", $path, $result, $params[0] ), LOG__DEBUG );
+            _log( sprintf( "INFO: Minfiles passed for '%s' - found %.0f, required >= %.0f", $path, $result, $params[0] ), LOG__DEBUG );
     }
 
     _log( "========== Minfiles check end ==========\n", LOG__DEBUG );
@@ -322,7 +322,7 @@ function minsizeCheck()
         {
             if( $howmany < 2 )
             {
-                _log( sprintf( "ERROR: Minfiles Check: Lowest retention period for '%s' needs at least 2 snapshots. " , $alias ), LOG__ERROR );
+                _log( sprintf( "ERROR: Minsize Check: Lowest retention period for '%s' needs at least 2 snapshots. " , $alias ), LOG__ERROR );
                 continue 2;
             }
             break;
@@ -341,32 +341,34 @@ function minsizeCheck()
 
         $result = exec( $exec );
         $result = explode( "\t", $result );
-        $result = intval( $result[0] );
+        $result = $result[0];
 
         _log( "Result: $result", LOG__DEBUG );
 
-        if( !is_numeric( $result ) || !$result )
+        if( !is_numeric( $result ) || !ctype_digit( $result ) )
         {
             _log( sprintf( "ERROR: Unexpected result in minsize check for '%s'" , $alias ), LOG__ERROR );
             continue;
         }
 
+	$result = (float) $result;
+
         if( $result < $params[1] )
         {
-            $m = sprintf( "Minsize check for '%s' is %d, expected >= %d", $alias, $result, $params[1] );
+            $m = sprintf( "Minsize check for '%s' is %.0f, expected >= %.0f", $alias, $result, $params[1] );
             _log( "CRITICAL: $m", LOG__VERBOSE );
             setStatus( STATUS_CRITICAL );
             $criticals .= $m;
         }
         elseif( $result < $params[0] )
         {
-            $m = sprintf( "Minsize check for '%s' is %d, expected >= %d", $alias, $result, $params[1] );
+            $m = sprintf( "Minsize check for '%s' is %.0f, expected >= %.0f", $alias, $result, $params[1] );
             _log( "WARNING: $m", LOG__VERBOSE );
             setStatus( STATUS_WARNING );
             $warnings .= $m;
         }
         else
-            _log( sprintf( "INFO: Minsize passed for '%s' - found %d, required >= %d", $path, $result, $params[0] ), LOG__DEBUG );
+            _log( sprintf( "INFO: Minsize passed for '%s' - found %.0f, required >= %.0f", $path, $result, $params[0] ), LOG__DEBUG );
     }
 
     _log( "========== Minsize check end ==========\n", LOG__DEBUG );
