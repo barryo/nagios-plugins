@@ -196,12 +196,19 @@ function checkFans()
 
     foreach( $fans as $i => $operational )
     {
-        _log( "Fan: {$i} - " . ( $operational ? 'OK' : 'NOT OK' ) . " ({$speeds[$i]} RPM)", LOG__VERBOSE );
-        $fandata .= " [{$i} - " . ( $operational ? 'OK' : 'NOT OK' ) . " ({$speeds[$i]} RPM)];";
+        $ok = $operational && $speeds[$i] >= 2000;
+        
+        _log( "Fan: {$i} - " . ( $ok ? 'OK' : 'NOT OK' ) . " ({$speeds[$i]} RPM)", LOG__VERBOSE );
+        $fandata .= " [{$i} - " . ( $ok ? 'OK' : 'NOT OK' ) . " ({$speeds[$i]} RPM)];";
 
-        if( !$operational ) {
+        if( !$ok ) {
             setStatus( STATUS_CRITICAL );
-            $criticals .= "Fan {$i} is NOT operational";
+            if( $operational && $speeds[$i] < 2000 )
+                $criticals .= "Fan {$i} is operational but speed is outside normal operating range (<2000). ";
+            else if( !$operational )
+                $criticals .= "Fan {$i} is not operational. ";
+            else
+                $criticals .= "Fan {$i} is not operational (reason unknown). ";
         }
     }
 
