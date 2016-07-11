@@ -77,6 +77,7 @@ my $hostname = undef;
 my $session;
 my $error;
 my $response = undef;
+my $ignoreregexp = undef;
 
 my $allports = 0;
 
@@ -99,7 +100,8 @@ $status = GetOptions(
             "verbose",              \$verbose,
             "all-ports",            \$allports,
             "help|?",               \$help,
-            "window=i",             \$window
+            "window=i",             \$window,
+            "ignoreregexp=s",       \$ignoreregexp,
 );
 
 if( !$status || $help ) {
@@ -167,10 +169,16 @@ if( $operStatus && $adminStatus && $name && $alias && $lastChange )
             my $t_lastChange   = $lastChange->{$snmpPortLastChangeTable . '.' . $t_index} / 100.0;
             my $t_changeReason = $changeReason->{$snmpPortChangeReasonTable . '.' . $t_index} if $changeReason;
 
+            # we're not always interested in every port -> allow some to be ignored by regexp on description
+            if( $ignoreregexp && $t_alias =~ /$ignoreregexp/ ) {
+                next;
+            }
+
+
             if( int( $t_type ) != 6 && !$allports )
             {
                 printf( "Skipping $t_name - $t_alias of type $t_type as only checking Ethernet ports\n" ) if $verbose;
-                next;
+                    next;
             }
 
             if( !$t_changeReason ) {
@@ -188,7 +196,7 @@ if( $operStatus && $adminStatus && $name && $alias && $lastChange )
                 $port_admin_states{$t_admin} = 0;
             }
             $port_admin_states{$t_admin}++;
-
+            
             if( ( $sysuptime - $t_lastChange ) <= $window && ( $sysuptime - $t_lastChange ) >= 0 ) {
                 &setstate( 'WARNING',
                     sprintf( "Port state change to $CISCO_PORT_OPER_STATES{$t_state} %0.1f mins ago for ${t_name} [DESC: ${t_alias}] [Reason: %s]. ",

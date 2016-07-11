@@ -86,6 +86,13 @@ $cmdargs = [
     'log_level'          => LOG__NONE
 ];
 
+// port interfaces to ignore.
+//
+// The array key is the hostname.  The value is the shortened snmp name.
+
+$ignoreports = [
+//    'core-router02.example.com'	=> 'Gi0/19',
+];
 
 // parse the command line arguments
 parseArguments();
@@ -120,6 +127,21 @@ $ifOutErrors = filterForType( $snmp->useIface()->outErrors(), $types, OSS_SNMP\M
 
 _log( "Found " . count( $ifInErrors  ) . " entries for in errors on physical ethernet ports", LOG__DEBUG );
 _log( "Found " . count( $ifOutErrors ) . " entries for out errors on physical ethernet ports", LOG__DEBUG );
+
+// delete unwanted entries
+foreach ( array_keys( $ignoreports ) as $hostkey) {
+
+    if ($cmdargs[ 'host' ] == $hostkey) {
+        $portid = array_keys( $names, $ignoreports[ $hostkey ] )[0];
+
+        if( isset ($portid) ) {
+            unset( $ifInErrors[ $portid ] );
+            unset( $ifOutErrors[ $portid ] );
+        }
+
+    }
+
+}
 
 
 // if we don't have any entries already, set them and send an unknown
