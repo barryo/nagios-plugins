@@ -238,7 +238,7 @@ function checkCPU( $l1, $l2, $l3 ) {
 
     if( $l1 > 1 || $l2 > 1 || $l3 > 1 ) {
         setStatus( STATUS_WARNING );
-        $criticals .= "System load is high. ";
+        $criticals .= "System load is high: {$l1} {$l2} {$l3}. ";
     } else {
         $normals .= " System load looks okay: {$l1} {$l2} {$l3}. ";
     }
