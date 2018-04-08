@@ -157,6 +157,7 @@ usage() if( !defined( $hostname ) );
 ( $session, $error ) = Net::SNMP->session(
     -hostname  => $hostname,
     -community => $community,
+    -version   => 2,
     -port      => $port,
     -translate => 0
 );
@@ -192,7 +193,7 @@ if( !$skipcpuall ) {
 }
 
 if( !$skipmem ) {
-    checkMemory();
+    checkMemoryEnhanced();
 }
 
 
@@ -265,11 +266,13 @@ sub checkTemperature
                 $tempdata .= ( $t_value !~ m/\?/ ? "$t_value/$t_thres " : "$t_state " );
 
                 if( $t_state =~ m/WARNING/i || $t_state =~ m/SHUTDOWN/i || $t_state =~ m/NOTPRESENT/i || $t_state =~ m/NOTFUNCTIONING/i ) {
-                    &setstate( 'WARNING', "Temperate state for $t_desc is: $t_state ($t_value/$t_thres)" );
+                    if( $t_value != 0 ) {
+                        &setstate( 'WARNING', "Temperature state for $t_desc is: $t_state ($t_value/$t_thres)" );
+                    }
                 } elsif( $t_state =~ m/CRITICAL/i ) {
-                    &setstate( 'CRITICAL', "Temperate state for $t_desc is: $t_state ($t_value/$t_thres)" );
+                    &setstate( 'CRITICAL', "Temperature state for $t_desc is: $t_state ($t_value/$t_thres)" );
                 } elsif( $t_state !~ m/^NORMAL$/i ) {
-                    &setstate( 'WARNING', "Temperate state for $t_desc is: $t_state ($t_value/$t_thres)" );
+                    &setstate( 'WARNING', "Temperature state for $t_desc is: $t_state ($t_value/$t_thres)" );
                 }
             }
         }
@@ -371,12 +374,50 @@ sub checkPower
     $psudata .= ". " if( defined( $psudata ) );
 }
 
+sub checkMemoryEnhanced
+{
+    my $snmpEntityPhysicalName = '1.3.6.1.2.1.47.1.1.1.1.7';
+    my $snmpMemPoolUsed  = '1.3.6.1.4.1.9.9.221.1.1.1.1.18';
+    my $snmpMemPoolFree  = '1.3.6.1.4.1.9.9.221.1.1.1.1.20';
 
+    # if CISCO-ENHANCED-MEMPOOL-MIB is available, we use that. Otherwise default to CISCO-MEMORY-POOL-MIB.
+    my $freetable = snmpGetTable( $snmpMemPoolFree, 'snmpMemPoolFree' );
 
+    if (!$freetable) {
+        checkMemoryStandard();
+        return;
+    }
+    my $usedtable = snmpGetTable( $snmpMemPoolUsed, 'snmpMemPoolUsed' );
+    my $entitynames = snmpGetTable( $snmpEntityPhysicalName, 'snmpEntityPhysicalName' );
 
+    # create list of entity indices that we're interested in
+    my @entities;
+    foreach $snmpkey ( keys %{$usedtable} )
+    {
+        next unless ($snmpkey =~ /(\d+)(\.1)$/);
+        push(@entities, $1);
+    }
 
+    foreach my $entityid (@entities) {
+        my $free = $freetable->{"$snmpMemPoolFree.$entityid.1"};
+        my $used = $usedtable->{"$snmpMemPoolUsed.$entityid.1"};
+        my $name = $entitynames->{"$snmpEntityPhysicalName.$entityid"};
 
-sub checkMemory
+        my $usage = $used * 100 / ($used + $free);
+
+        printf ("Memory: $name, free: $free, used: $used, total: %d, usage: %0.1f%%\n", $used + $free, $usage) if $verbose;
+
+        if( $usage >= $memcrit ) {
+            &setstate( 'CRITICAL', sprintf( "$name Memory Usage at %0.1f%%", $usage ) );
+        } elsif( $usage >= $memwarn ) {
+            &setstate( 'WARNING', sprintf( "$name Memory Usage at %0.1f%%",  $usage ) );
+        } else {
+            $memdata = "Memory OK. ";
+        }
+    }
+}
+
+sub checkMemoryStandard
 {
     my $snmpMemPoolTable = '1.3.6.1.4.1.9.9.48.1.1.1';
     my $snmpMemPoolName  = '1.3.6.1.4.1.9.9.48.1.1.1.2';
@@ -556,7 +597,7 @@ sub snmpGetTable {
     {
         if( $session->error_status() == 2 || $session->error() =~ m/requested table is empty or does not exist/i )
         {
-            print "OID not supported for $check ($oid).\n" if $verbose;
+            print "OID not supported for $check ($oid): ".$session->error()."\n" if $verbose;
             return 0;
         }
 
