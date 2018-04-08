@@ -190,7 +190,7 @@ if( !$skippsu ) {
 }
 
 if( !$skipcpuall ) {
-    checkCPU();
+    checkCPUEntities();
 }
 
 if( !$skipmem ) {
@@ -471,6 +471,65 @@ sub checkReboot
     }
 
     $uptime = $sysuptime / 60.0 / 24.0;
+}
+
+sub checkCPUEntities
+{
+    my $snmpCpuTable         = '1.3.6.1.4.1.9.9.109.1.1.1.1';
+    my $snmpCpuPhysicalIndex = '1.3.6.1.4.1.9.9.109.1.1.1.1.2';
+    my %snmpCpu = (
+         '1min', '1.3.6.1.4.1.9.9.109.1.1.1.1.7',
+         '5min', '1.3.6.1.4.1.9.9.109.1.1.1.1.8'
+    );
+
+    return if( !( my $cputable = snmpGetTable( $snmpCpuTable, 'CPU utilisation' ) ) );
+    my $cpuPhysicalIndex = snmpGetTable ($snmpCpuPhysicalIndex, 'CPU Physical to Entity Index');
+
+    if (defined ($cpuPhysicalIndex->{"$snmpCpuPhysicalIndex.1"}) && $cpuPhysicalIndex->{"$snmpCpuPhysicalIndex.1"} == 0) {
+        # this device does not support CPU entities => use traditional method
+        checkCPU();
+        return;
+    }
+
+    foreach $snmpkey (keys %{$cpuPhysicalIndex}) {
+        next unless ($snmpkey =~ /\.(\d+)$/);
+        my $physicalid = $1;
+
+        while( my( $t_time, $t_oid ) = each( %snmpCpu ) )
+        {
+            if( $skipcpu{$t_time} ) {
+                next;
+            }
+
+            my $util = $cputable->{"$t_oid.$physicalid"} || 'UNKNOWN';
+            my $name = snmpGetEntityName($cpuPhysicalIndex->{$snmpkey});
+
+            print( "CPU: $name, interval: $t_time, util: $util%\n" ) if $verbose;
+            $cpudata = "CPU:" if( !defined( $cpudata ) );
+            $cpudata .= " \"$name\"/$t_time: $util%";
+
+            # check for user supplied thresholds
+            if( defined( $threscpuarg{$t_time} ) ) {
+                if( $threscpuarg{$t_time} =~ /(\d+),(\d+)/ ) {
+                    $threscpu{$t_time . 'w'} = $1;
+                    $threscpu{$t_time . 'c'} = $2;
+                } else {
+                    print( "ERROR: Bad parameters for CPU $t_time threshold. Correct example: --thres-cpu-1min 80,90\n" );
+                    exit $ERRORS{"UNKNOWN"};
+                }
+            }
+
+            if( $util ne 'UNKNOWN' ) {
+                if(  $util >= $threscpu{$t_time . 'c'} ) {
+                    &setstate( 'CRITICAL', "$t_time CPU Usage $util%" );
+                } elsif( $util >= $threscpu{$t_time . 'w'} ) {
+                    &setstate( 'WARNING', "$t_time CPU Usage $util%" );
+                }
+            }
+        }
+    }
+
+    $cpudata .= ". " if( defined( $cpudata ) );
 }
 
 sub checkCPU
