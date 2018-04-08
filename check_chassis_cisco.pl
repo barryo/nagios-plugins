@@ -34,6 +34,7 @@
 #
 
 use strict;
+use feature 'state';
 
 use Net::SNMP;
 use Getopt::Long;
@@ -376,7 +377,6 @@ sub checkPower
 
 sub checkMemoryEnhanced
 {
-    my $snmpEntityPhysicalName = '1.3.6.1.2.1.47.1.1.1.1.7';
     my $snmpMemPoolUsed  = '1.3.6.1.4.1.9.9.221.1.1.1.1.18';
     my $snmpMemPoolFree  = '1.3.6.1.4.1.9.9.221.1.1.1.1.20';
 
@@ -388,20 +388,14 @@ sub checkMemoryEnhanced
         return;
     }
     my $usedtable = snmpGetTable( $snmpMemPoolUsed, 'snmpMemPoolUsed' );
-    my $entitynames = snmpGetTable( $snmpEntityPhysicalName, 'snmpEntityPhysicalName' );
 
-    # create list of entity indices that we're interested in
-    my @entities;
-    foreach $snmpkey ( keys %{$usedtable} )
-    {
+    foreach $snmpkey (keys %{$usedtable}) {
         next unless ($snmpkey =~ /(\d+)(\.1)$/);
-        push(@entities, $1);
-    }
+        my $entityid = $1;
 
-    foreach my $entityid (@entities) {
         my $free = $freetable->{"$snmpMemPoolFree.$entityid.1"};
         my $used = $usedtable->{"$snmpMemPoolUsed.$entityid.1"};
-        my $name = $entitynames->{"$snmpEntityPhysicalName.$entityid"};
+        my $name = snmpGetEntityName($entityid);
 
         my $usage = $used * 100 / ($used + $free);
 
@@ -633,4 +627,18 @@ sub snmpGetRequest {
     }
 
     return $response;
+}
+
+sub snmpGetEntityName {
+    my ($id) = @_;
+    my $snmpEntityPhysicalName = '1.3.6.1.2.1.47.1.1.1.1.7';
+
+    # execute snmpwalk once per script execution
+    state $entitynames = snmpGetTable( $snmpEntityPhysicalName, 'snmpEntityPhysicalName' );
+
+    if (defined ($entitynames->{"$snmpEntityPhysicalName.$id"})) {
+        return $entitynames->{"$snmpEntityPhysicalName.$id"};
+    } else {
+        return undef;
+    }
 }
