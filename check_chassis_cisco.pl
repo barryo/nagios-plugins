@@ -34,6 +34,7 @@
 #
 
 use strict;
+use feature 'state';
 
 use Net::SNMP;
 use Getopt::Long;
@@ -157,6 +158,7 @@ usage() if( !defined( $hostname ) );
 ( $session, $error ) = Net::SNMP->session(
     -hostname  => $hostname,
     -community => $community,
+    -version   => 2,
     -port      => $port,
     -translate => 0
 );
@@ -188,11 +190,11 @@ if( !$skippsu ) {
 }
 
 if( !$skipcpuall ) {
-    checkCPU();
+    checkCPUEntities();
 }
 
 if( !$skipmem ) {
-    checkMemory();
+    checkMemoryEnhanced();
 }
 
 
@@ -265,11 +267,13 @@ sub checkTemperature
                 $tempdata .= ( $t_value !~ m/\?/ ? "$t_value/$t_thres " : "$t_state " );
 
                 if( $t_state =~ m/WARNING/i || $t_state =~ m/SHUTDOWN/i || $t_state =~ m/NOTPRESENT/i || $t_state =~ m/NOTFUNCTIONING/i ) {
-                    &setstate( 'WARNING', "Temperate state for $t_desc is: $t_state ($t_value/$t_thres)" );
+                    if( $t_value != 0 ) {
+                        &setstate( 'WARNING', "Temperature state for $t_desc is: $t_state ($t_value/$t_thres)" );
+                    }
                 } elsif( $t_state =~ m/CRITICAL/i ) {
-                    &setstate( 'CRITICAL', "Temperate state for $t_desc is: $t_state ($t_value/$t_thres)" );
+                    &setstate( 'CRITICAL', "Temperature state for $t_desc is: $t_state ($t_value/$t_thres)" );
                 } elsif( $t_state !~ m/^NORMAL$/i ) {
-                    &setstate( 'WARNING', "Temperate state for $t_desc is: $t_state ($t_value/$t_thres)" );
+                    &setstate( 'WARNING', "Temperature state for $t_desc is: $t_state ($t_value/$t_thres)" );
                 }
             }
         }
@@ -371,12 +375,43 @@ sub checkPower
     $psudata .= ". " if( defined( $psudata ) );
 }
 
+sub checkMemoryEnhanced
+{
+    my $snmpMemPoolUsed  = '1.3.6.1.4.1.9.9.221.1.1.1.1.18';
+    my $snmpMemPoolFree  = '1.3.6.1.4.1.9.9.221.1.1.1.1.20';
 
+    # if CISCO-ENHANCED-MEMPOOL-MIB is available, we use that. Otherwise default to CISCO-MEMORY-POOL-MIB.
+    my $freetable = snmpGetTable( $snmpMemPoolFree, 'snmpMemPoolFree' );
 
+    if (!$freetable) {
+        checkMemoryStandard();
+        return;
+    }
+    my $usedtable = snmpGetTable( $snmpMemPoolUsed, 'snmpMemPoolUsed' );
 
+    foreach $snmpkey (keys %{$usedtable}) {
+        next unless ($snmpkey =~ /(\d+)(\.1)$/);
+        my $entityid = $1;
 
+        my $free = $freetable->{"$snmpMemPoolFree.$entityid.1"};
+        my $used = $usedtable->{"$snmpMemPoolUsed.$entityid.1"};
+        my $name = snmpGetEntityName($entityid);
 
-sub checkMemory
+        my $usage = $used * 100 / ($used + $free);
+
+        printf ("Memory: $name, free: $free, used: $used, total: %d, usage: %0.1f%%\n", $used + $free, $usage) if $verbose;
+
+        if( $usage >= $memcrit ) {
+            &setstate( 'CRITICAL', sprintf( "$name Memory Usage at %0.1f%%", $usage ) );
+        } elsif( $usage >= $memwarn ) {
+            &setstate( 'WARNING', sprintf( "$name Memory Usage at %0.1f%%",  $usage ) );
+        } else {
+            $memdata = "Memory OK. ";
+        }
+    }
+}
+
+sub checkMemoryStandard
 {
     my $snmpMemPoolTable = '1.3.6.1.4.1.9.9.48.1.1.1';
     my $snmpMemPoolName  = '1.3.6.1.4.1.9.9.48.1.1.1.2';
@@ -436,6 +471,65 @@ sub checkReboot
     }
 
     $uptime = $sysuptime / 60.0 / 24.0;
+}
+
+sub checkCPUEntities
+{
+    my $snmpCpuTable         = '1.3.6.1.4.1.9.9.109.1.1.1.1';
+    my $snmpCpuPhysicalIndex = '1.3.6.1.4.1.9.9.109.1.1.1.1.2';
+    my %snmpCpu = (
+         '1min', '1.3.6.1.4.1.9.9.109.1.1.1.1.7',
+         '5min', '1.3.6.1.4.1.9.9.109.1.1.1.1.8'
+    );
+
+    return if( !( my $cputable = snmpGetTable( $snmpCpuTable, 'CPU utilisation' ) ) );
+    my $cpuPhysicalIndex = snmpGetTable ($snmpCpuPhysicalIndex, 'CPU Physical to Entity Index');
+
+    if (defined ($cpuPhysicalIndex->{"$snmpCpuPhysicalIndex.1"}) && $cpuPhysicalIndex->{"$snmpCpuPhysicalIndex.1"} == 0) {
+        # this device does not support CPU entities => use traditional method
+        checkCPU();
+        return;
+    }
+
+    foreach $snmpkey (keys %{$cpuPhysicalIndex}) {
+        next unless ($snmpkey =~ /\.(\d+)$/);
+        my $physicalid = $1;
+
+        while( my( $t_time, $t_oid ) = each( %snmpCpu ) )
+        {
+            if( $skipcpu{$t_time} ) {
+                next;
+            }
+
+            my $util = $cputable->{"$t_oid.$physicalid"} || 'UNKNOWN';
+            my $name = snmpGetEntityName($cpuPhysicalIndex->{$snmpkey});
+
+            print( "CPU: $name, interval: $t_time, util: $util%\n" ) if $verbose;
+            $cpudata = "CPU:" if( !defined( $cpudata ) );
+            $cpudata .= " \"$name\"/$t_time: $util%";
+
+            # check for user supplied thresholds
+            if( defined( $threscpuarg{$t_time} ) ) {
+                if( $threscpuarg{$t_time} =~ /(\d+),(\d+)/ ) {
+                    $threscpu{$t_time . 'w'} = $1;
+                    $threscpu{$t_time . 'c'} = $2;
+                } else {
+                    print( "ERROR: Bad parameters for CPU $t_time threshold. Correct example: --thres-cpu-1min 80,90\n" );
+                    exit $ERRORS{"UNKNOWN"};
+                }
+            }
+
+            if( $util ne 'UNKNOWN' ) {
+                if(  $util >= $threscpu{$t_time . 'c'} ) {
+                    &setstate( 'CRITICAL', "$t_time CPU Usage $util%" );
+                } elsif( $util >= $threscpu{$t_time . 'w'} ) {
+                    &setstate( 'WARNING', "$t_time CPU Usage $util%" );
+                }
+            }
+        }
+    }
+
+    $cpudata .= ". " if( defined( $cpudata ) );
 }
 
 sub checkCPU
@@ -556,7 +650,7 @@ sub snmpGetTable {
     {
         if( $session->error_status() == 2 || $session->error() =~ m/requested table is empty or does not exist/i )
         {
-            print "OID not supported for $check ($oid).\n" if $verbose;
+            print "OID not supported for $check ($oid): ".$session->error()."\n" if $verbose;
             return 0;
         }
 
@@ -592,4 +686,18 @@ sub snmpGetRequest {
     }
 
     return $response;
+}
+
+sub snmpGetEntityName {
+    my ($id) = @_;
+    my $snmpEntityPhysicalName = '1.3.6.1.2.1.47.1.1.1.1.7';
+
+    # execute snmpwalk once per script execution
+    state $entitynames = snmpGetTable( $snmpEntityPhysicalName, 'snmpEntityPhysicalName' );
+
+    if (defined ($entitynames->{"$snmpEntityPhysicalName.$id"})) {
+        return $entitynames->{"$snmpEntityPhysicalName.$id"};
+    } else {
+        return undef;
+    }
 }
