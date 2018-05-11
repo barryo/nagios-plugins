@@ -485,7 +485,7 @@ sub checkCPUEntities
     return if( !( my $cputable = snmpGetTable( $snmpCpuTable, 'CPU utilisation' ) ) );
     my $cpuPhysicalIndex = snmpGetTable ($snmpCpuPhysicalIndex, 'CPU Physical to Entity Index');
 
-    if (defined ($cpuPhysicalIndex->{"$snmpCpuPhysicalIndex.1"}) && $cpuPhysicalIndex->{"$snmpCpuPhysicalIndex.1"} == 0) {
+    if (!$cpuPhysicalIndex || (defined ($cpuPhysicalIndex->{"$snmpCpuPhysicalIndex.1"}) && $cpuPhysicalIndex->{"$snmpCpuPhysicalIndex.1"} == 0)) {
         # this device does not support CPU entities => use traditional method
         checkCPU();
         return;
