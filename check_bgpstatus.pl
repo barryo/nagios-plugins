@@ -57,6 +57,7 @@ my $debug = 0;
 my $community = 'public';
 my $port = 161;
 my $timeout = 30;
+my $mibtype = undef;
 
 GetOptions(
 	'debug!'		=> \$debug,
@@ -64,6 +65,7 @@ GetOptions(
 	'community=s'		=> \$community,
 	'port=s'		=> \$port,
 	'timeout=i'		=> \$timeout,
+	'mibtype=s'		=> \$mibtype,
 );
 
 if (!$host) {
@@ -71,12 +73,22 @@ if (!$host) {
 }
 
 my $oids = {
-	'bgpPeerState'		=> '1.3.6.1.2.1.15.3.1.2',
-	'bgpPeerAdminStatus'	=> '1.3.6.1.2.1.15.3.1.3',
-	'bgpPeerLocalAddr'	=> '1.3.6.1.2.1.15.3.1.5',
-	'bgpPeerRemoteAddr'	=> '1.3.6.1.2.1.15.3.1.7',
-	'bgpPeerRemoteAs'	=> '1.3.6.1.2.1.15.3.1.9',
-	'bgpPeerLastError'	=> '1.3.6.1.2.1.15.3.1.14',
+	'generic' => {
+		'localas'		=> '1.3.6.1.2.1.15.2',
+		'bgpPeerState'		=> '1.3.6.1.2.1.15.3.1.2',
+		'bgpPeerAdminStatus'	=> '1.3.6.1.2.1.15.3.1.3',
+		'bgpPeerLocalAddr'	=> '1.3.6.1.2.1.15.3.1.5',
+		'bgpPeerRemoteAs'	=> '1.3.6.1.2.1.15.3.1.9',
+		'bgpPeerLastError'	=> '1.3.6.1.2.1.15.3.1.14',
+	},
+	'cisco' => {
+		'localas'		=> '1.3.6.1.4.1.9.9.187.1.3.2.0',
+		'bgpPeerState'		=> '1.3.6.1.4.1.9.9.187.1.2.5.1.3',
+		'bgpPeerAdminStatus'	=> '1.3.6.1.4.1.9.9.187.1.2.5.1.4',
+		'bgpPeerLocalAddr'	=> '1.3.6.1.4.1.9.9.187.1.2.5.1.6',
+		'bgpPeerRemoteAs'	=> '1.3.6.1.4.1.9.9.187.1.2.5.1.11',
+		'bgpPeerLastError'	=> '1.3.6.1.4.1.9.9.187.1.2.5.1.17',
+	},
 };
 
 my $bgperrorcodes = {
@@ -181,33 +193,102 @@ sub verboseexit {
 	exit $errval;
 }
 
-my $state;
-foreach my $oid (keys %{$oids}) {
-	my ($session, $error) = Net::SNMP->session(
-		hostname	=> $host,
-		community	=> $community,
-		port		=> $port
-	);
+sub decodeip {
+	my ($mibtype, $baseoid, $response) = @_;
+	my $ipaddr = undef;
 
-	if (!defined($session)) {
-		verboseexit (NAGIOS_UNKNOWN, $error);
+	if ($mibtype eq 'generic') {
+		$response =~ s/^($baseoid)\.//;
+		return undef unless ($response =~ /^(\d+\.\d+\.\d+\.\d+)/);
+		$ipaddr = $1;
+	} elsif ($mibtype eq 'cisco') {
+		# remove first part of OID response
+		$response =~ s/^($baseoid)\.//;
+		return undef unless ($response =~ /^(\d+\.\d+)\.(.*)/);
+		if ($1 eq '1.4') {		# AFI ipv4, 4 byte address
+			$ipaddr = $2;
+		} elsif ($1 eq '2.16') {	# AFI ipv6, 16 byte address
+			$ipaddr = $2;
+
+			# The following operation could have been done in a
+			# single statement, but it would have been
+			# incomprehensible.
+
+			# The ipv6 address is encoded as a string of
+			# dot-separated 8-bit digits.  We use split() to
+			# convert this into an array.  map() is then used to
+			# execute sprintf ('%02x') on each element of the
+			# array.  These two operations convert the data from
+			# an array of 8-bit integers into an array of 8-bit
+			# hex strings.  We concatenate these with join,
+			# which results in a 32-char hex string.
+
+			my $hexadddr = join ('', map (sprintf ('%02x', $_), split (/\./, $ipaddr)));
+
+			# This statement splits the 32-char hex string into
+			# an array of 8 groups of 4 hex chars.  These are
+			# joined with a ':' token to form an ipv6 address in
+			# long format.
+
+			$hexadddr = join (':', unpack("(A4)*", $hexadddr));
+
+			# Rather than writing code to convert this to ipv6
+			# short format, we take a short cut with Net::IP.
+
+			use Net::IP;
+			my $ip = new Net::IP ($hexadddr);
+
+			$ipaddr = $ip->short();
+		}
 	}
 	
-	my $response = $session->get_table($oids->{$oid});
+	return $ipaddr;
+}
+
+my ($snmpsession, $error) = Net::SNMP->session(
+	hostname	=> $host,
+	community	=> $community,
+	port		=> $port
+);
+
+if (!defined($snmpsession)) {
+	verboseexit (NAGIOS_UNKNOWN, $error);
+}
+
+if (defined ($mibtype) && !defined ($oids->{$mibtype})) {
+	verboseexit (NAGIOS_UNKNOWN, "undefined mibtype specified on command line");
+}
+
+if (!defined ($mibtype)) {
+	foreach my $mibcandidate (keys %{$oids}) {
+		my $response = $snmpsession->get_request($oids->{$mibcandidate}->{'localas'});
+		if (defined ($response)) {
+			$mibtype = $mibcandidate;
+			last;
+		}
+	}
+}
+
+$mibtype = 'generic' unless (defined ($mibtype));
+
+my $state;
+foreach my $oid (keys %{$oids->{$mibtype}}) {
+	next if ($oid eq 'localas');
+
+	my $response = $snmpsession->get_table($oids->{$mibtype}->{$oid});
 	if (!defined ($response)) {
-		my $sessionerror = $session->error;
-		$session->close;
+		my $sessionerror = $snmpsession->error;
+		$snmpsession->close;
 		verboseexit (NAGIOS_CRITICAL, "$host: $sessionerror: $oid");
 	}
 
 	foreach my $responseoid (keys %{$response}) {
-		next unless ($responseoid =~ /.*\.(\d+\.\d+\.\d+\.\d+$)/);
-		my $ipaddr =  $1;
+		my $ipaddr = decodeip ($mibtype, $oids->{$mibtype}->{$oid}, $responseoid);
 		$state->{$oid}->{$ipaddr} = $response->{$responseoid};
 	}
-
-	$session->close;
 }
+
+$snmpsession->close;
 
 $debug && print Dumper ($state);
 
@@ -216,7 +297,7 @@ my $inactive = 0;
 my $established = 0;
 my @warnings;
 
-foreach my $ip (keys %{$state->{bgpPeerRemoteAddr}}) {
+foreach my $ip (keys %{$state->{bgpPeerLocalAddr}}) {
 	if ($state->{bgpPeerAdminStatus}->{$ip} == 1) {
 		$shutdown++;
 	} elsif ($state->{bgpPeerState}->{$ip} == 6) {
