@@ -74,20 +74,25 @@ if (!$host) {
 
 my $oids = {
 	'generic' => {
-		'localas'		=> '1.3.6.1.2.1.15.2',
+		'mibidentifier'		=> '1.3.6.1.2.1.15.2',
 		'bgpPeerState'		=> '1.3.6.1.2.1.15.3.1.2',
 		'bgpPeerAdminStatus'	=> '1.3.6.1.2.1.15.3.1.3',
-		'bgpPeerLocalAddr'	=> '1.3.6.1.2.1.15.3.1.5',
 		'bgpPeerRemoteAs'	=> '1.3.6.1.2.1.15.3.1.9',
 		'bgpPeerLastError'	=> '1.3.6.1.2.1.15.3.1.14',
 	},
 	'cisco' => {
-		'localas'		=> '1.3.6.1.4.1.9.9.187.1.3.2.0',
+		'mibidentifier'		=> '1.3.6.1.4.1.9.9.187.1.2.5.1.3',
 		'bgpPeerState'		=> '1.3.6.1.4.1.9.9.187.1.2.5.1.3',
 		'bgpPeerAdminStatus'	=> '1.3.6.1.4.1.9.9.187.1.2.5.1.4',
-		'bgpPeerLocalAddr'	=> '1.3.6.1.4.1.9.9.187.1.2.5.1.6',
 		'bgpPeerRemoteAs'	=> '1.3.6.1.4.1.9.9.187.1.2.5.1.11',
 		'bgpPeerLastError'	=> '1.3.6.1.4.1.9.9.187.1.2.5.1.17',
+	},
+	'arista' => {
+		'mibidentifier'		=> '1.3.6.1.4.1.30065.4.1.1.2.1.2',
+		'bgpPeerState'		=> '1.3.6.1.4.1.30065.4.1.1.2.1.13.1',
+		'bgpPeerAdminStatus'	=> '1.3.6.1.4.1.30065.4.1.1.2.1.12.1',
+		'bgpPeerRemoteAs'	=> '1.3.6.1.4.1.30065.4.1.1.2.1.10.1',
+		'bgpPeerLastError'	=> '1.3.6.1.4.1.30065.4.1.1.3.1.1.1',
 	},
 };
 
@@ -201,7 +206,7 @@ sub decodeip {
 		$response =~ s/^($baseoid)\.//;
 		return undef unless ($response =~ /^(\d+\.\d+\.\d+\.\d+)/);
 		$ipaddr = $1;
-	} elsif ($mibtype eq 'cisco') {
+	} elsif ($mibtype eq 'cisco' || $mibtype eq 'arista') {
 		# remove first part of OID response
 		$response =~ s/^($baseoid)\.//;
 		return undef unless ($response =~ /^(\d+\.\d+)\.(.*)/);
@@ -261,7 +266,8 @@ if (defined ($mibtype) && !defined ($oids->{$mibtype})) {
 
 if (!defined ($mibtype)) {
 	foreach my $mibcandidate (keys %{$oids}) {
-		my $response = $snmpsession->get_request($oids->{$mibcandidate}->{'localas'});
+		next if ($mibcandidate eq 'generic');
+		my $response = $snmpsession->get_table($oids->{$mibcandidate}->{'mibidentifier'});
 		if (defined ($response)) {
 			$mibtype = $mibcandidate;
 			last;
@@ -273,8 +279,9 @@ $mibtype = 'generic' unless (defined ($mibtype));
 
 my $state;
 foreach my $oid (keys %{$oids->{$mibtype}}) {
-	next if ($oid eq 'localas');
+	next if ($oid eq 'mibidentifier');
 
+	$debug && print STDERR "checking OID $oid\n";
 	my $response = $snmpsession->get_table($oids->{$mibtype}->{$oid});
 	if (!defined ($response)) {
 		my $sessionerror = $snmpsession->error;
@@ -290,14 +297,14 @@ foreach my $oid (keys %{$oids->{$mibtype}}) {
 
 $snmpsession->close;
 
-$debug && print Dumper ($state);
+$debug && print STDERR Dumper ($state);
 
 my $shutdown = 0;
 my $inactive = 0;
 my $established = 0;
 my @warnings;
 
-foreach my $ip (keys %{$state->{bgpPeerLocalAddr}}) {
+foreach my $ip (keys %{$state->{bgpPeerAdminStatus}}) {
 	if ($state->{bgpPeerAdminStatus}->{$ip} == 1) {
 		$shutdown++;
 	} elsif ($state->{bgpPeerState}->{$ip} == 6) {
@@ -316,7 +323,7 @@ foreach my $ip (keys %{$state->{bgpPeerLocalAddr}}) {
 	}
 }
 
-$debug && print Dumper (@warnings);
+$debug && print STDERR Dumper (@warnings);
 
 my $errval = $inactive ? NAGIOS_WARNING : NAGIOS_OK;
 my $peertext = '';
