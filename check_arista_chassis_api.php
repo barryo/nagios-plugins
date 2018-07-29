@@ -211,17 +211,31 @@ if( isset( $state->error ) ) {
 $state = trim( $state->result[0]->output );
 
 $matches = [];
+$uptime = 0;	// minutes
+
+if( preg_match( "/^[\d\:]{8}\s+up\s+(\d+)\s+(\w+),\s+(\d+):(\d+),/", $state, $matches ) ) {
 // 14:56:15 up 141 days, 14:35,  3 users,  load average: 0.43, 0.37, 0.33
-//
-if( !preg_match( "/^[\d\:]{8}\sup\s(\d+)\s(\w+),.*load average: ([\d\.]+),\s([\d\.]+),\s([\d\.]+)$/", $state, $matches ) ) {
+    $uptime = $matches[1] * 1440 + $matches[2] * 60 + $matches[3];
+} elseif( preg_match( "/^[\d\:]{8}\s+up\s+(\d+):(\d+),/", $state, $matches ) ) {
+// 10:23:36 up 15:09,  1 user,  load average: 0.62, 0.66, 0.62
+    $uptime = $matches[1] * 60 + $matches[2];
+} elseif( preg_match( "/^[\d\:]{8}\s+up\s+(\d+)\s+min,/", $state, $matches ) ) {
+//  10:42:16 up 3 min,  1 user,  load average: 3.55, 1.55, 0.60
+    $uptime = $matches[1];
+} else {
     echo "UNKNOWN: (uptime) could not parse response";
     exit( STATUS_UNKNOWN );
 }
 
 //             141          days
-checkUptime( $matches[1], $matches[2] );
+checkUptime( $uptime );
 
-checkCPU( $matches[3], $matches[4], $matches[5] );
+$matches = [];
+if( !preg_match( "/load average: ([\d\.]+),\s([\d\.]+),\s([\d\.]+)$/", $state, $matches ) ) {
+    echo "UNKNOWN: (uptime) could not parse response";
+    exit( STATUS_UNKNOWN );
+}
+checkCPU( $matches[1], $matches[2], $matches[3] );
 
 
 if( $status == STATUS_OK )
@@ -236,28 +250,25 @@ exit( $status );
 function checkCPU( $l1, $l2, $l3 ) {
     global $cmdargs, $criticals, $warnings, $unknowns, $normals;
 
-    if( $l1 > 1 || $l2 > 1 || $l3 > 1 ) {
+    if( $l1 > 1.5 || $l2 > 1.5 || $l3 > 1.5 ) {
         setStatus( STATUS_WARNING );
         $criticals .= "System load is high: {$l1} {$l2} {$l3}. ";
     } else {
-        $normals .= " System load looks okay: {$l1} {$l2} {$l3}. ";
+        $normals .= "System load looks okay: {$l1} {$l2} {$l3}. ";
     }
 }
 
-function checkUptime( $num, $unit ) {
+function checkUptime( $num ) {
     global $cmdargs, $criticals, $warnings, $unknowns, $normals;
 
     if( isset( $cmdargs['skip-reboot'] ) && $cmdargs['skip-reboot'] )
         return;
 
-    if( $num == 0 && substr( $unit, 0, 3 ) == 'day' ) {
-        setStatus( STATUS_CRITICAL );
-        $criticals .= "Switch uptime is less than 1 day. ";
-    } else if( substr( $unit, 0, 3 ) != 'day' ) {
-        setStatus( STATUS_CRITICAL );
-        $criticals .= "Switch uptime is measured in an unknown unit. Ask Barry! ";
+    if( $num < 1440 ) {
+        setStatus( STATUS_WARNING );
+        $criticals .= "Switch uptime is {$num} minutes. ";
     } else {
-        $normals .= " System uptime looks okay: {$num} {$unit}. ";
+        $normals .= " System uptime looks okay: {$num} minutes. ";
     }
 }
 
