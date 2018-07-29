@@ -264,8 +264,8 @@ function checkUptime( $num ) {
     if( isset( $cmdargs['skip-reboot'] ) && $cmdargs['skip-reboot'] )
         return;
 
-    if( $num < 1440 ) {
-        setStatus( STATUS_WARNING );
+    if( $num < $cmdargs['reboot'] / 60 ) {
+        setStatus( STATUS_CRITICAL );
         $criticals .= "Switch uptime is {$num} minutes. ";
     } else {
         $normals .= " System uptime looks okay: {$num} minutes. ";
