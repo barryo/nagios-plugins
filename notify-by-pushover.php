@@ -1,4 +1,4 @@
-#! /usr/local/bin/php
+#! /usr/bin/php
 <?php
 
 /**
@@ -82,6 +82,7 @@ $app   = isset( $argv[2] ) ? $argv[2] : false;
 $user  = isset( $argv[3] ) ? $argv[3] : false;
 $type  = isset( $argv[4] ) ? $argv[4] : false; // NOTIFICATIONTYPE
 $state = isset( $argv[5] ) ? $argv[5] : false; // STATE
+$sound = "none";
 
 if( !$mode || !$app || !$user || !$type || !$state )
     die( "ERROR - USAGE: notify-by-pushover.php <HOST/SERVICE> <APP_KEY> <USER_KEY> <TYPE> <STATE>\n\n" );
@@ -97,9 +98,9 @@ switch( $state )
         $priority = PO_PRI_NORMAL;
         break;
 
-   case 'DOWN':
    case 'CRITICAL':
         $priority = PO_PRI_HIGH;
+	    $sound="persistent";
         break;
 
     default:
@@ -115,13 +116,11 @@ curl_setopt_array( $ch = curl_init(), array(
         "user" => $user,
         "message" => $message,
         "title" => "Nagios Alert - $mode - $type - $state",
-        "priority" => $priority
+        "priority" => $priority,
+	"html" => 1,
+	"sound" => $sound
     )
 ));
 
 curl_exec($ch);
 curl_close($ch);
-
-
-
-
