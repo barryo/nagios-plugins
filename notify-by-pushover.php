@@ -84,7 +84,7 @@ $type  = isset( $argv[4] ) ? $argv[4] : false; // NOTIFICATIONTYPE
 $state = isset( $argv[5] ) ? $argv[5] : false; // STATE
 $sound = "none";
 
-if(!$message) {
+if(!isset($message)) {
     $message = isset( $argv[6] ) ? $argv[6] : false; //Message is set as an argument
 }
 
