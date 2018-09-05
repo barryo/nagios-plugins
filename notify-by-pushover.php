@@ -1,4 +1,4 @@
-#! /usr/bin/php
+#! /usr/local/bin/php
 <?php
 
 /**
@@ -98,6 +98,7 @@ switch( $state )
         $priority = PO_PRI_NORMAL;
         break;
 
+   case 'DOWN':
    case 'CRITICAL':
         $priority = PO_PRI_HIGH;
 	    $sound="persistent";
