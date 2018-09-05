@@ -1,4 +1,4 @@
-#! /usr/local/bin/php
+#! /usr/bin/php
 <?php
 
 /**
@@ -83,6 +83,10 @@ $user  = isset( $argv[3] ) ? $argv[3] : false;
 $type  = isset( $argv[4] ) ? $argv[4] : false; // NOTIFICATIONTYPE
 $state = isset( $argv[5] ) ? $argv[5] : false; // STATE
 $sound = "none";
+
+if(!$message) {
+    $message = isset( $argv[6] ) ? $argv[6] : false; //Message is set as an argument
+}
 
 if( !$mode || !$app || !$user || !$type || !$state )
     die( "ERROR - USAGE: notify-by-pushover.php <HOST/SERVICE> <APP_KEY> <USER_KEY> <TYPE> <STATE>\n\n" );
