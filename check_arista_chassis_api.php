@@ -213,7 +213,7 @@ $state = trim( $state->result[0]->output );
 $matches = [];
 $uptime = 0;	// minutes
 
-if( preg_match( "/^[\d\:]{8}\s+up\s+(\d+)\s+(\w+),\s+(\d+):(\d+),/", $state, $matches ) ) {
+if( preg_match( "/^[\d\:]{8}\s+up\s+(\d+)\s+\w+,\s+(\d+):(\d+),/", $state, $matches ) ) {
 // 14:56:15 up 141 days, 14:35,  3 users,  load average: 0.43, 0.37, 0.33
     $uptime = $matches[1] * 1440 + $matches[2] * 60 + $matches[3];
 } elseif( preg_match( "/^[\d\:]{8}\s+up\s+(\d+):(\d+),/", $state, $matches ) ) {
