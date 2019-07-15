@@ -175,7 +175,7 @@ if( $operStatus && $adminStatus && $name && $alias && $lastChange )
             }
 
 
-            if( int( $t_type ) != 6 && !$allports )
+            if( defined( $t_type ) && int( $t_type ) != 6 && !$allports )
             {
                 printf( "Skipping $t_name - $t_alias of type $t_type as only checking Ethernet ports\n" ) if $verbose;
                     next;
