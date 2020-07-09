@@ -111,9 +111,9 @@ $payload = '{
     "autoComplete": false,
     "expandAliases": false,
     "cmds": [
-      "show environment cooling",
-      "show environment power",
-      "show environment temperature",
+      "show system environment cooling",
+      "show system environment power",
+      "show system environment temperature",
       "show version"
     ],
     "version": 1
@@ -164,7 +164,7 @@ $payload = '{
   "jsonrpc": "2.0",
   "method": "runCmds",
   "params": {
-    "format": "text",
+    "format": "json",
     "timestamps": false,
     "autoComplete": false,
     "expandAliases": false,
@@ -208,38 +208,11 @@ if( isset( $state->error ) ) {
     exit( STATUS_UNKNOWN );
 }
 
-$state = trim( $state->result[0]->output );
+$state = $state->result[0];
 
-$matches = [];
-$uptime = 0;	// minutes
+checkUptime( round($state->upTime / 60) );
 
-if( preg_match( "/^[\d\:]{8}\s+up\s+(\d+)\s+\w+,\s+(\d+):(\d+),/", $state, $matches ) ) {
-// 14:56:15 up 141 days, 14:35,  3 users,  load average: 0.43, 0.37, 0.33
-    $uptime = $matches[1] * 1440 + $matches[2] * 60 + $matches[3];
-} elseif( preg_match( "/^[\d\:]{8}\s+up\s+(\d+):(\d+),/", $state, $matches ) ) {
-// 10:23:36 up 15:09,  1 user,  load average: 0.62, 0.66, 0.62
-    $uptime = $matches[1] * 60 + $matches[2];
-} elseif( preg_match( "/^[\d\:]{8}\s+up\s+(\d+)\s+day.*,\s+(\d+)\s+min,/", $state, $matches ) ) {
-// 13:07:12 up 1 day, 9 min,  1 user,  load average: 1.92, 1.75, 1.03
-    $uptime = $matches[1] * 1440 + $matches[2];
-} elseif( preg_match( "/^[\d\:]{8}\s+up\s+(\d+)\s+min,/", $state, $matches ) ) {
-//  10:42:16 up 3 min,  1 user,  load average: 3.55, 1.55, 0.60
-    $uptime = $matches[1];
-} else {
-    echo "UNKNOWN: (uptime) could not parse response";
-    exit( STATUS_UNKNOWN );
-}
-
-//             141          days
-checkUptime( $uptime );
-
-$matches = [];
-if( !preg_match( "/load average: ([\d\.]+),\s([\d\.]+),\s([\d\.]+)$/", $state, $matches ) ) {
-    echo "UNKNOWN: (uptime) could not parse response";
-    exit( STATUS_UNKNOWN );
-}
-checkCPU( $matches[1], $matches[2], $matches[3] );
-
+checkCPU( $state->loadAvg[0], $state->loadAvg[1], $state->loadAvg[2] );
 
 if( $status == STATUS_OK )
     $msg = "OK -{$normals}\n";
