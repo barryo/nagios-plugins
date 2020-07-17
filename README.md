@@ -4,9 +4,9 @@ Nagios Plugins :: nagios-plugins
 Introduction
 ------------
 
-`nagios-plugins` is a collection of various plugins I have written and expanded
-over the last ten years or so. They main goal of Nagios plugins that I write
-and release are:
+`nagios-plugins` is a collection of various plugins written and expanded
+over since circa 2005. They main goal of Nagios plugins available and released
+here are:
 
 * BSD (or BSD like) license so you can hack away to wield into something that
   may be more suitable for your own environment;
@@ -15,8 +15,7 @@ and release are:
   handle them all;
 * WARNINGs are designed for email notifications during working hours; CRITICAL
   means an out of hours text / SMS message :(
-* Perl is not my first language but all scripts are written in Perl. Forgive
-  my inelegence (and give me C / C++ / PHP anyday!)
+* Perl is not my first language but many scripts are written in Perl.
 * each script should be an independant unit with no dependancies on each
   other or unusual Perl modules;
 * the scripts should all be run with the `--verbose` on new kit. This will
@@ -73,7 +72,9 @@ are:
 About the Author
 ----------------
 
-Please see my company website at http://www.opensolutions.ie/ or my own personal
+The primary author is Barry O'Donovan with contributions by others (see Git history).
+
+Please see my company website at https://www.islandbridgenetworks.ie/ or my own personal
 site at http://www.barryodonovan.com/.
 
 
