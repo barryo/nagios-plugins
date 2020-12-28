@@ -35,7 +35,7 @@ use strict;
 use warnings;
 
 use Net::SNMP;
-use Getopt::Long;
+use Getopt::Long qw(:config pass_through);;
 use Data::Dumper;
 
 use constant {
@@ -58,6 +58,12 @@ my $community = 'public';
 my $port = 161;
 my $timeout = 30;
 my $mibtype = undef;
+my $snmpversion = '2c';
+my $username = undef;
+my $authprotocol = 'sha1';
+my $authpassword = undef;
+my $privprotocol = 'aes';
+my $privpassword;
 
 GetOptions(
 	'debug!'		=> \$debug,
@@ -66,6 +72,12 @@ GetOptions(
 	'port=s'		=> \$port,
 	'timeout=i'		=> \$timeout,
 	'mibtype=s'		=> \$mibtype,
+	'snmpversion=s'		=> \$snmpversion,
+	'username=s'		=> \$username,
+	'authprotocol=s'	=> \$authprotocol,
+	'authpassword=s'		=> \$authpassword,
+	'privprotocol=s'	=> \$privprotocol,
+	'privpassword=s'		=> \$privpassword,
 );
 
 if (!$host) {
@@ -250,11 +262,27 @@ sub decodeip {
 	return $ipaddr;
 }
 
-my ($snmpsession, $error) = Net::SNMP->session(
+my @sessionargs = (
 	hostname	=> $host,
-	community	=> $community,
-	port		=> $port
+	port		=> $port,
+	version		=> $snmpversion,
 );
+
+if ($snmpversion eq '3') {
+	push @sessionargs, (
+		username	=> $username,
+		authprotocol	=> $authprotocol,
+		authpassword	=> $authpassword,
+		privprotocol	=> $privprotocol,
+		privpassword	=> $privpassword,
+	);
+} else {
+	push @sessionargs, (
+		community	=> $community,
+	);
+}
+
+my ($snmpsession, $error) = Net::SNMP->session(@sessionargs);
 
 if (!defined($snmpsession)) {
 	verboseexit (NAGIOS_UNKNOWN, $error);
