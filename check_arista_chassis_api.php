@@ -226,7 +226,7 @@ exit( $status );
 function checkCPU( $l1, $l2, $l3 ) {
     global $cmdargs, $criticals, $warnings, $unknowns, $normals;
 
-    if( $l1 > 2 || $l2 > 2 || $l3 > 2 ) {
+    if( $l1 > 7 || $l2 > 5 || $l3 > 3 ) {
         setStatus( STATUS_WARNING );
         $criticals .= "System load is high: {$l1} {$l2} {$l3}. ";
     } else {
