@@ -102,7 +102,7 @@ parseArguments();
 $MCKEY = 'NAGIOS_CHECK_PORT_ERRORS_' . md5( $cmdargs['host'] );
 
 if( !class_exists( 'Memcache' ) )
-    die( "ERROR: php5-memcache is required\n" );
+    die( "ERROR: php-memcache is required\n" );
 
 $mc = new Memcache;
 $mc->connect( 'localhost', 11211 ) or die( "ERROR: Could not connect to memcache on localhost:11211\n" );
@@ -112,7 +112,18 @@ _log( "Connected to Memcache with version: " . $mc->getVersion(), LOG__DEBUG );
 
 require 'OSS_SNMP/OSS_SNMP/SNMP.php';
 
-$snmp = new \OSS_SNMP\SNMP( $cmdargs['host'], $cmdargs['community'] );
+$snmp = new \OSS_SNMP\SNMP(
+    $cmdargs['host'],
+    $cmdargs['community'],
+    $cmdargs['snmpversion'],
+    $cmdargs['seclevel'],
+    $cmdargs['authprotocol'],
+    $cmdargs['authpassword'],
+    $cmdargs['privprotocol'],
+    $cmdargs['privpassword'],
+);
+
+$snmp->setSecName($cmdargs['username']);
 
 // get interface types for later filtering
 $types = $snmp->useIface()->types();
@@ -235,6 +246,11 @@ function parseArguments()
 
     $i = 1;
 
+    $cmdargs['community'] = '';
+    $cmdargs['snmpversion'] = '2c';
+    $cmdargs['authprotocol'] = 'SHA';
+    $cmdargs['privprotocol'] = 'AES';
+    $cmdargs['seclevel'] = 'authPriv';
 
     while( $i < $argc )
     {
@@ -274,6 +290,41 @@ function parseArguments()
 
             case 'p':
                 $cmdargs['port'] = $argv[$i+1];
+                $i++;
+                break;
+
+            case 's':
+                $cmdargs['snmpversion'] = $argv[$i+1];
+                $i++;
+                break;
+
+            case 'u':
+                $cmdargs['username'] = $argv[$i+1];
+                $i++;
+                break;
+
+            case 'a':
+                $cmdargs['authprotocol'] = $argv[$i+1];
+                $i++;
+                break;
+
+            case 'A':
+                $cmdargs['authpassword'] = $argv[$i+1];
+                $i++;
+                break;
+
+            case 'e':
+                $cmdargs['privprotocol'] = $argv[$i+1];
+                $i++;
+                break;
+
+            case 'E':
+                $cmdargs['privpassword'] = $argv[$i+1];
+                $i++;
+                break;
+
+            case 'l':
+                $cmdargs['seclevel'] = $argv[$i+1];
                 $i++;
                 break;
 
@@ -338,7 +389,7 @@ function printUsage()
     $progname = basename( $argv[0] );
 
     echo <<<END_USAGE
-{$progname} -c <READCOMMUNITY> -p <PORT> -h <HOSTNAME> [-V] [-h] [-?] [--help]
+{$progname} [-c <READCOMMUNITY> | -s 3] -p <PORT> -h <HOSTNAME> [-V] [-h] [-?] [--help]
 
 END_USAGE;
 
@@ -381,7 +432,7 @@ function printHelp()
 {$progname} - Nagios plugin to check for incrementing port errors'
 Copyright (c) 2014 Open Source Solutions Ltd - http://www.opensolutions.ie/
 
-{$progname} -c <READCOMMUNITY> -p <PORT> -h <HOSTNAME> [-V] [-?] [--help]
+{$progname} [-c <READCOMMUNITY> | -s 3] -p <PORT> -h <HOSTNAME> [-V] [-?] [--help]
 
 WARNING: SCRIPT IS HARD CODED TO CONNECT TO A MEMCACHE INSTANCE ON:
     localhost:11211
@@ -402,7 +453,20 @@ Options:
     Verbose output
  -d
     Debug output
-
+ -s
+    SNMP Version (2c or 3)
+ -u
+    SNMPv3 username
+ -a
+    SNMPv3 authentication protocol
+ -A
+    SNMPv3 authentication password
+ -e
+    SNMPv3 encryption / privacy protocol
+ -E
+    SNMPv3 encryption / privacy password
+ -l
+    SNMPv3 security level (noAuthNoPriv|authNoPriv|authPriv)
 
 END_USAGE;
 
