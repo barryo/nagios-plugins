@@ -65,6 +65,12 @@ my $snmpkey;
 my $key;
 my $community = "public";
 my $port = 161;
+my $snmpversion = '2c';
+my $username = undef;
+my $authprotocol = 'sha1';
+my $authpassword = undef;
+my $privprotocol = 'aes';
+my $privpassword;
 
 my $hostname = undef;
 my $session;
@@ -124,28 +130,34 @@ alarm( $TIMEOUT );
 
 
 $status = GetOptions(
-            "hostname=s",       \$hostname,
-            "community=s",      \$community,
-            "port=i",           \$port,
-            "lastcheck=i",      \$lastcheck,
-            "skip-mem",         \$skipmem,
-            "memwarn=i",        \$memwarn,
-            "memcrit=i",        \$memcrit,
-            "skip-temp",        \$skiptemp,
-            "skip-fans",        \$skipfans,
-            "skip-psu",         \$skippsu,
-            "skip-reboot",      \$skipreboot,
-            "skip-cpu",         \$skipcpuall,
-            "skip-cpu-5sec",    \$skipcpu{'5sec'},
-            "skip-cpu-1min",    \$skipcpu{'1min'},
-            "skip-cpu-5min",         \$skipcpu{'5min'},
-            "thres-cpu-5sec=s",      \$threscpuarg{'5sec'},
-            "thres-cpu-1min=s",      \$threscpuarg{'1min'},
-            "thres-cpu-5min=s",      \$threscpuarg{'5min'},
-            "ignore-psu-notpresent", \$ignorepsunotpresent,
-            "help|?",               \$help,
-            "verbose",          \$verbose,
-            "reboot=i",         \$rebootWindow
+            "hostname=s"        => \$hostname,
+            "community=s"       => \$community,
+            "port=i"            => \$port,
+            "lastcheck=i"       => \$lastcheck,
+            "skip-mem"          => \$skipmem,
+            "memwarn=i"         => \$memwarn,
+            "memcrit=i"         => \$memcrit,
+            "skip-temp"         => \$skiptemp,
+            "skip-fans"         => \$skipfans,
+            "skip-psu"          => \$skippsu,
+            "skip-reboot"       => \$skipreboot,
+            "skip-cpu"          => \$skipcpuall,
+            "skip-cpu-5sec"     => \$skipcpu{'5sec'},
+            "skip-cpu-1min"     => \$skipcpu{'1min'},
+            "skip-cpu-5min"     => \$skipcpu{'5min'},
+            "thres-cpu-5sec=s"  => \$threscpuarg{'5sec'},
+            "thres-cpu-1min=s"  => \$threscpuarg{'1min'},
+            "thres-cpu-5min=s"  => \$threscpuarg{'5min'},
+            "ignore-psu-notpresent" => \$ignorepsunotpresent,
+            "help|?"            => \$help,
+            "verbose"           => \$verbose,
+            "reboot=i"          => \$rebootWindow,
+            "snmpversion=s"     => \$snmpversion,
+            "username=s"        => \$username,
+            "authprotocol=s"    => \$authprotocol,
+            "authpassword=s"    => \$authpassword,
+            "privprotocol=s"    => \$privprotocol,
+            "privpassword=s"    => \$privpassword,
 );
 
 if( !$status || $help ) {
@@ -155,13 +167,28 @@ if( !$status || $help ) {
 
 usage() if( !defined( $hostname ) );
 
-( $session, $error ) = Net::SNMP->session(
-    -hostname  => $hostname,
-    -community => $community,
-    -version   => 2,
-    -port      => $port,
-    -translate => 0
+my @sessionargs = (
+        hostname        => $hostname,
+        port            => $port,
+        version         => $snmpversion,
+        translate       => 0
 );
+
+if ($snmpversion eq '3') {
+    push @sessionargs, (
+        username        => $username,
+        authprotocol    => $authprotocol,
+        authpassword    => $authpassword,
+        privprotocol    => $privprotocol,
+        privpassword    => $privpassword,
+    );
+} else {
+    push @sessionargs, (
+        community       => $community,
+    );
+}
+
+($session, $error) = Net::SNMP->session(@sessionargs);
 
 if( !defined( $session ) )
 {

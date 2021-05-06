@@ -34,6 +34,17 @@ git submodule init
 git submodule update
 ```
 
+SNMPv3 support
+--------------
+
+SNMPv3 support requires additional packages for the perl plugins.  On a
+Debian / Ubuntu system, these can be installed using the following command
+line:
+
+```
+apt install libnet-snmp-perl libnet-ip-perl libcrypt-des-perl libdigest-hmac-perl libcrypt-rijndael-perl
+```
+
 License
 -------
 

@@ -59,6 +59,12 @@ my $snmpkey;
 my $key;
 my $community = "public";
 my $port = 161;
+my $snmpversion = '2c';
+my $username = undef;
+my $authprotocol = 'sha1';
+my $authpassword = undef;
+my $privprotocol = 'aes';
+my $privpassword;
 
 my $hostname = undef;
 my $session;
@@ -87,16 +93,22 @@ alarm( $TIMEOUT );
 
 
 $status = GetOptions(
-            "hostname=s",        \$hostname,
-            "community=s",       \$community,
-            "port=i",            \$port,
-            "verbose",           \$verbose,
-            "warning=i",         \$warning,
-            "no-warning-recalc", \$nowarningrecalc,
-            "devices-only",      \$devicesonly,
-            "calc-method=i",     \$calcmethod,
-            "help|?",            \$help,
-            "man",               \$manpage
+            "hostname=s"         => \$hostname,
+            "community=s"        => \$community,
+            "port=i"             => \$port,
+            "verbose"            => \$verbose,
+            "warning=i"          => \$warning,
+            "no-warning-recalc"  => \$nowarningrecalc,
+            "devices-only"       => \$devicesonly,
+            "calc-method=i"      => \$calcmethod,
+            "help|?"             => \$help,
+            "man"                => \$manpage,
+            "snmpversion=s"      => \$snmpversion,
+            "username=s"         => \$username,
+            "authprotocol=s"     => \$authprotocol,
+            "authpassword=s"     => \$authpassword,
+            "privprotocol=s"     => \$privprotocol,
+            "privpassword=s"     => \$privpassword,
 );
 
 pod2usage(-verbose => 2) if $manpage;
@@ -105,14 +117,28 @@ pod2usage( -verbose => 1 ) if $help;
 
 pod2usage() if !$status || !$hostname;
 
-
-
-( $session, $error ) = Net::SNMP->session(
-    -hostname  => $hostname,
-    -community => $community,
-    -port      => $port,
-    -translate => 0
+my @sessionargs = (
+        hostname        => $hostname,
+        port            => $port,
+        version         => $snmpversion,
+        translate       => 0
 );
+
+if ($snmpversion eq '3') {
+    push @sessionargs, (
+        username        => $username,
+        authprotocol    => $authprotocol,
+        authpassword    => $authpassword,
+        privprotocol    => $privprotocol,
+        privpassword    => $privpassword,
+    );
+} else {
+    push @sessionargs, (
+        community       => $community,
+    );
+}
+
+($session, $error) = Net::SNMP->session(@sessionargs);
 
 if( !defined( $session ) )
 {
@@ -285,6 +311,12 @@ check_disk_snmp.pl --hostname <host> [options]
    --no-warning-recalc don't automatically recalculate the warning offset (see --man)
    --devices-only      only check disks with devices in /dev/ on the server
    --calc-method       calculation method to use (default 1)
+   --snmpversion       specify the SNMP version (2c or 3)
+   --username          specify the SNMPv3 username
+   --authprotocol      specify the SNMPv3 authentication protocol
+   --authpassword      specify the SNMPv3 authentication username
+   --privprotocol      specify the SNMPv3 privacy protocol
+   --privpassword      specify the SNMPv3 privacy username
 
 =head1 OPTIONS AND ARGUMENTS
 

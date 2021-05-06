@@ -55,6 +55,12 @@ my $snmpkey;
 my $key;
 my $community = "public";
 my $port = 161;
+my $snmpversion = '2c';
+my $username = undef;
+my $authprotocol = 'sha1';
+my $authpassword = undef;
+my $privprotocol = 'aes';
+my $privpassword;
 
 my $hostname = undef;
 my $session;
@@ -102,18 +108,24 @@ alarm( $TIMEOUT );
 
 
 $status = GetOptions(
-            "hostname=s",  \$hostname,
-            "community=s", \$community,
-            "port=i",      \$port,
-            "skipmem",     \$skipmem,
-            "skipswap",    \$skipswap,
-            "skipload",    \$skipload,
-            "skipreboot",  \$skipreboot,
-            "verbose",     \$verbose,
-            "memwarn=i",   \$memwarn,
-            "help|?",               \$help,
-            "memcrit=i",   \$memcrit,
-            "reboot=i",    \$rebootWindow
+            "hostname=s"        => \$hostname,
+            "community=s"       => \$community,
+            "port=i"            => \$port,
+            "skipmem"           => \$skipmem,
+            "skipswap"          => \$skipswap,
+            "skipload"          => \$skipload,
+            "skipreboot"        => \$skipreboot,
+            "verbose"           => \$verbose,
+            "memwarn=i"         => \$memwarn,
+            "help|?"            => \$help,
+            "memcrit=i"         => \$memcrit,
+            "reboot=i"          => \$rebootWindow,
+            "snmpversion=s"     => \$snmpversion,
+            "username=s"        => \$username,
+            "authprotocol=s"    => \$authprotocol,
+            "authpassword=s"    => \$authpassword,
+            "privprotocol=s"    => \$privprotocol,
+            "privpassword=s"    => \$privpassword,
 );
 
 if( !$status || $help ) {
@@ -123,12 +135,28 @@ if( !$status || $help ) {
 
 usage() if( !defined( $hostname ) );
 
-( $session, $error ) = Net::SNMP->session(
-    -hostname  => $hostname,
-    -community => $community,
-    -port      => $port,
-    -translate => 0
+my @sessionargs = (
+        hostname        => $hostname,
+        port            => $port,
+        version         => $snmpversion,
+        translate       => 0
 );
+
+if ($snmpversion eq '3') {
+    push @sessionargs, (
+        username        => $username,
+        authprotocol    => $authprotocol,
+        authpassword    => $authpassword,
+        privprotocol    => $privprotocol,
+        privpassword    => $privpassword,
+    );
+} else {
+    push @sessionargs, (
+        community       => $community,
+    );
+}
+
+($session, $error) = Net::SNMP->session(@sessionargs);
 
 if( !defined( $session ) )
 {
