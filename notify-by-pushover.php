@@ -1,4 +1,4 @@
-#! /usr/local/bin/php
+#! /usr/bin/php
 <?php
 
 /**
@@ -73,7 +73,7 @@ define( 'PO_PRI_EMERG',  2  );  // not used at present in this script
 
 
 // get the message from STDIN
-$message = trim( fgets( STDIN ) );
+//$message = trim( fgets( STDIN ) );
 
 // get the parameters
 
@@ -82,9 +82,12 @@ $app   = isset( $argv[2] ) ? $argv[2] : false;
 $user  = isset( $argv[3] ) ? $argv[3] : false;
 $type  = isset( $argv[4] ) ? $argv[4] : false; // NOTIFICATIONTYPE
 $state = isset( $argv[5] ) ? $argv[5] : false; // STATE
+$message = isset( $argv[6] ) ? $argv[6] : false; // MESSAGE
+$sound = "none";
+
 
 if( !$mode || !$app || !$user || !$type || !$state )
-    die( "ERROR - USAGE: notify-by-pushover.php <HOST/SERVICE> <APP_KEY> <USER_KEY> <TYPE> <STATE>\n\n" );
+    die( "ERROR - USAGE: notify-by-pushover.php <HOST/SERVICE> <APP_KEY> <USER_KEY> <TYPE> <STATE> <MESSAGE>\n\n" );
 
 switch( $state )
 {
@@ -100,6 +103,7 @@ switch( $state )
    case 'DOWN':
    case 'CRITICAL':
         $priority = PO_PRI_HIGH;
+	    $sound="persistent";
         break;
 
     default:
@@ -114,14 +118,12 @@ curl_setopt_array( $ch = curl_init(), array(
         "token" => $app,
         "user" => $user,
         "message" => $message,
-        "title" => "Nagios Alert - $mode - $type - $state",
-        "priority" => $priority
+        "title" => "Icinga Alert - $mode - $type - $state",
+        "priority" => $priority,
+	"html" => 1,
+	"sound" => $sound
     )
 ));
 
 curl_exec($ch);
 curl_close($ch);
-
-
-
-
