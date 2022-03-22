@@ -85,6 +85,7 @@ my $session;
 my $error;
 my $response = undef;
 my $ignoreregexp = undef;
+my $matchregexp = undef;
 
 my $allports = 0;
 
@@ -109,6 +110,7 @@ $status = GetOptions(
             "help|?"             => \$help,
             "window=i"           => \$window,
             "ignoreregexp=s"     => \$ignoreregexp,
+            "matchregexp=s"      => \$matchregexp,
             "snmpversion=s"      => \$snmpversion,
             "username=s"         => \$username,
             "authprotocol=s"     => \$authprotocol,
@@ -203,6 +205,10 @@ if( $operStatus && $adminStatus && $name && $alias && $lastChange )
                 next;
             }
 
+            # Monitor only specific ports by means of regex on port description/alias.
+            if( $matchregexp && $t_alias !~ /$matchregexp/ ) {
+		            next;
+	          }
 
             if( defined( $t_type ) && int( $t_type ) != 6 && !$allports )
             {
@@ -282,6 +288,8 @@ sub usage {
   printf "  --community             The SNMP access community (using: $community)\n\n";
   printf "  --window                If change occured within \$window seconds ago, then alert\n\n";
   printf "  --all-ports             By default, we only examine Ethernet ports\n\n";
+  printf "  --ignoreregex           Ignore port descriptions using regex\n\n";
+  printf "  --matchregex            Match port descriptions using regex\n\n";
   printf "\nCopyright (c) 2011, Barry O'Donovan <barry\@opensolutions.ie>\n";
   printf "All rights reserved.\n\n";
   printf "This script comes with ABSOLUTELY NO WARRANTY\n";
