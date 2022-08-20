@@ -67,7 +67,7 @@ my $window = 3600;
 my $sysuptime = 0;
 
 my $status;
-my $TIMEOUT = 20;
+my $timeout = 20;
 my $state = "OK";
 my $answer = "";
 my $snmpkey;
@@ -92,15 +92,6 @@ my $allports = 0;
 my $verbose = 0;
 my $help = 0;
 
-
-# Just in case of problems, let's not hang Nagios
-$SIG{'ALRM'} = sub {
-    print( "ERROR: No snmp response from $hostname\n" );
-    exit $ERRORS{"UNKNOWN"};
-};
-alarm( $TIMEOUT );
-
-
 $status = GetOptions(
             "hostname=s"         => \$hostname,
             "community=s"        => \$community,
@@ -117,7 +108,15 @@ $status = GetOptions(
             "authpassword=s"     => \$authpassword,
             "privprotocol=s"     => \$privprotocol,
             "privpassword=s"     => \$privpassword,
+            "timeout=i"          => \$timeout,
 );
+
+# Just in case of problems, let's not hang Nagios
+$SIG{'ALRM'} = sub {
+    print( "ERROR: No snmp response from $hostname\n" );
+    exit $ERRORS{"UNKNOWN"};
+};
+alarm( $timeout );
 
 if( !$status || $help ) {
     usage();
