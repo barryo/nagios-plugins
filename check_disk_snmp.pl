@@ -234,7 +234,7 @@ sub checkDiskSpace
                     &setstate( 'WARNING', "Disk usage for $t_path ($t_device) is $t_percentused\%" );
                 }
 
-                if( $t_percentinode != 'UNKNOWN' ) {
+                if( $t_percentinode ne 'UNKNOWN' ) {
                     if( $t_percentinode >= ( 100 - $t_minpercent ) ) {
                         &setstate( 'CRITICAL', "Disk inode usage for $t_path ($t_device) is $t_percentinode\%" );
                     } elsif( $t_percentinode >= ( 100 - $t_minpercent - $t_warning ) ) {
