@@ -51,7 +51,7 @@ my %ERRORS = (
 );
 
 my $status;
-my $TIMEOUT = 20;
+my $timeout = 20;
 my $state = "UNSET";
 my $answer = "";
 my $int;
@@ -78,14 +78,6 @@ my $verbose = 0;
 my $help = 0;
 my $manpage = 0;
 
-# Just in case of problems, let's not hang Nagios
-$SIG{'ALRM'} = sub {
-    print( "ERROR: No snmp response from $hostname\n" );
-    exit $ERRORS{"UNKNOWN"};
-};
-alarm( $TIMEOUT );
-
-
 $status = GetOptions(
             "hostname=s"         => \$hostname,
             "community=s"        => \$community,
@@ -99,7 +91,15 @@ $status = GetOptions(
             "authpassword=s"     => \$authpassword,
             "privprotocol=s"     => \$privprotocol,
             "privpassword=s"     => \$privpassword,
+            "timeout=i"          => \$timeout,
 );
+
+# Just in case of problems, let's not hang Nagios
+$SIG{'ALRM'} = sub {
+    print( "ERROR: No snmp response from $hostname\n" );
+    exit $ERRORS{"UNKNOWN"};
+};
+alarm( $timeout );
 
 pod2usage(-verbose => 2) if $manpage;
 
