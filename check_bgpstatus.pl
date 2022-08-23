@@ -210,6 +210,43 @@ sub verboseexit {
 	exit $errval;
 }
 
+
+sub hexstringtoipv6 {
+	my ($ipaddr) = @_;
+
+	# The following operation could have been done in a
+	# single statement, but it would have been
+	# incomprehensible.
+
+	# The ipv6 address is encoded as a string of
+	# dot-separated 8-bit digits.  We use split() to
+	# convert this into an array.  map() is then used to
+	# execute sprintf ('%02x') on each element of the
+	# array.  These two operations convert the data from
+	# an array of 8-bit integers into an array of 8-bit
+	# hex strings.  We concatenate these with join,
+	# which results in a 32-char hex string.
+
+	my $hexadddr = join ('', map (sprintf ('%02x', $_), split (/\./, $ipaddr)));
+
+	# This statement splits the 32-char hex string into
+	# an array of 8 groups of 4 hex chars.  These are
+	# joined with a ':' token to form an ipv6 address in
+	# long format.
+
+	$hexadddr = join (':', unpack("(A4)*", $hexadddr));
+
+	# Rather than writing code to convert this to ipv6
+	# short format, we take a short cut with Net::IP.
+
+	use Net::IP;
+	my $ip = new Net::IP ($hexadddr);
+
+	$ipaddr = $ip->short();
+
+	return ($ipaddr);
+}
+
 sub decodeip {
 	my ($mibtype, $baseoid, $response) = @_;
 	my $ipaddr = undef;
@@ -225,37 +262,7 @@ sub decodeip {
 		if ($1 eq '1.4') {		# AFI ipv4, 4 byte address
 			$ipaddr = $2;
 		} elsif ($1 eq '2.16') {	# AFI ipv6, 16 byte address
-			$ipaddr = $2;
-
-			# The following operation could have been done in a
-			# single statement, but it would have been
-			# incomprehensible.
-
-			# The ipv6 address is encoded as a string of
-			# dot-separated 8-bit digits.  We use split() to
-			# convert this into an array.  map() is then used to
-			# execute sprintf ('%02x') on each element of the
-			# array.  These two operations convert the data from
-			# an array of 8-bit integers into an array of 8-bit
-			# hex strings.  We concatenate these with join,
-			# which results in a 32-char hex string.
-
-			my $hexadddr = join ('', map (sprintf ('%02x', $_), split (/\./, $ipaddr)));
-
-			# This statement splits the 32-char hex string into
-			# an array of 8 groups of 4 hex chars.  These are
-			# joined with a ':' token to form an ipv6 address in
-			# long format.
-
-			$hexadddr = join (':', unpack("(A4)*", $hexadddr));
-
-			# Rather than writing code to convert this to ipv6
-			# short format, we take a short cut with Net::IP.
-
-			use Net::IP;
-			my $ip = new Net::IP ($hexadddr);
-
-			$ipaddr = $ip->short();
+			$ipaddr = hexstringtoipv6 ($2);
 		}
 	}
 	
