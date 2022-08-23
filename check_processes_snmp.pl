@@ -187,18 +187,20 @@ sub checkProcesses
                 my $t_err_flag = $response->{$prErrorFlag  . '.' . $t_index};
                 my $t_err_msg  = $response->{$prErrMessage . '.' . $t_index};
 
-                print( "Process: $t_name  $t_min <= $t_count <= $t_max   => Err: $t_err_flag - [$t_err_msg]\n" ) if $verbose;
+                my $errormsg = defined ($t_err_msg) ? "[$t_err_msg]" : "";
+
+                print( "Process: $t_name  $t_min <= $t_count <= $t_max   => Err: $t_err_flag $errormsg\n" ) if $verbose;
 
                 $procstats .= sprintf( "%s (%d<=%d<=%d); ", $t_name, $t_min, $t_count, $t_max );
 
                 if( $t_err_flag )
                 {
                     if( $t_count == 0 && $t_min != 0 ) {
-                        &setstate( 'CRITICAL', "$t_name not running! (${t_err_msg})" );
+                        &setstate( 'CRITICAL', "$t_name not running $errormsg" );
                     } elsif( $t_count < $t_min ) {
-                        &setstate( 'WARNING', "Too few $t_name running (${t_min} <= ${t_count} <= ${t_max})! [${t_err_msg}]" );
+                        &setstate( 'WARNING', "Too few $t_name running (${t_min} <= ${t_count} <= ${t_max}) $errormsg" );
                     } else {
-                        &setstate( 'WARNING', "Too many $t_name running (${t_min} <= ${t_count} <= ${t_max})! [${t_err_msg}]" );
+                        &setstate( 'WARNING', "Too many $t_name running (${t_min} <= ${t_count} <= ${t_max}) $errormsg" );
                     }
                 }
             }
