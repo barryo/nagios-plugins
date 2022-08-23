@@ -106,6 +106,13 @@ my $oids = {
 		'bgpPeerRemoteAs'	=> '1.3.6.1.4.1.30065.4.1.1.2.1.10.1',
 		'bgpPeerLastError'	=> '1.3.6.1.4.1.30065.4.1.1.3.1.1.1',
 	},
+	'juniper' => {
+		'mibidentifier'		=> '.1.3.6.1.4.1.2636.5.1.1.2.4.3',
+		'bgpPeerState'		=> '.1.3.6.1.4.1.2636.5.1.1.2.1.1.1.2',
+		'bgpPeerAdminStatus'	=> '.1.3.6.1.4.1.2636.5.1.1.2.1.1.1.3',
+		'bgpPeerRemoteAs'	=> '.1.3.6.1.4.1.2636.5.1.1.2.1.1.1.13',
+		'bgpPeerLastError'	=> '.1.3.6.1.4.1.2636.5.1.1.2.2.1.1.2',
+	},
 };
 
 my $bgperrorcodes = {
@@ -258,11 +265,28 @@ sub decodeip {
 	} elsif ($mibtype eq 'cisco' || $mibtype eq 'arista') {
 		# remove first part of OID response
 		$response =~ s/^($baseoid)\.//;
+
+		# format is .n.m.addr, where n = protocol version and m = encoding length
 		return undef unless ($response =~ /^(\d+\.\d+)\.(.*)/);
 		if ($1 eq '1.4') {		# AFI ipv4, 4 byte address
 			$ipaddr = $2;
 		} elsif ($1 eq '2.16') {	# AFI ipv6, 16 byte address
 			$ipaddr = hexstringtoipv6 ($2);
+		}
+	} elsif ($mibtype eq 'juniper') {
+		$response =~ s/^($baseoid)\.//;
+		# format is .r.n.laddr.n.raddr, where r = rib and n = protocol version. We want raddr.
+
+		# strip off RIB identifier
+		$response =~ s/^\d+\.//;
+
+		return undef unless ($response =~ /^([12])\.(.*)/);
+		if ($1 eq '1') {		# AFI ipv4
+			$response =~ /\.1\.(\d+(\.\d+){3})$/;
+			$ipaddr = $1;
+		} elsif ($1 eq '2') {		# AFI ipv6
+			$response =~ /\.2\.(\d+(\.\d+){15})$/;
+			$ipaddr = hexstringtoipv6 ($1);
 		}
 	}
 	
