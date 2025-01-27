@@ -380,7 +380,7 @@ function checkMemory( $mem )
     if( isset( $cmdargs['skip-mem'] ) && $cmdargs['skip-mem'] )
         return;
 
-    $memUtil = sprintf( "%0.2f", ( $mem->memFree / $mem->memTotal ) * 100.0 );
+    $memUtil = sprintf( "%0.2f", (1 - $mem->memFree / $mem->memTotal ) * 100.0 );
 
     if( $memUtil > $cmdargs['memcrit'] ) {
         setStatus( STATUS_CRITICAL );
