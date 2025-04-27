@@ -11,7 +11,7 @@
  * utilities for Nagios developed by Barry O'Donovan (https://www.barryodonovan.com/)
  * and his company, Open Solutions (http://www.opensolutions.ie/).
  *
- * Copyright (c) 2004 - 2017, Open Source Solutions Limited, Dublin, Ireland
+ * Copyright (c) 2004 - 2025, Open Source Solutions Limited, Dublin, Ireland
  * All rights reserved.
  *
  * Contact: Barry O'Donovan - info (at) opensolutions (dot) ie
@@ -45,7 +45,7 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * @package    barryo / nagios-plugins
- * @copyright  Copyright (c) 2004 - 2017, Open Source Solutions Limited, Dublin, Ireland
+ * @copyright  Copyright (c) 2004 - 2025, Open Source Solutions Limited, Dublin, Ireland
  * @license    http://www.opensolutions.ie/licenses/new-bsd New BSD License
  * @link       http://www.opensolutions.ie/ Open Source Solutions Limited
  * @author     Barry O'Donovan <info@opensolutions.ie>
@@ -53,7 +53,7 @@
  */
 
 date_default_timezone_set('Europe/Dublin');
-define( "VERSION", '1.0.0' );
+define( "VERSION", '1.1.0' );
 
 ini_set( 'max_execution_time', '55' );
 
@@ -91,7 +91,8 @@ $cmdargs = [
     'reboot'             => 3600,
     'thres-cpu-1sec'     => '95,98',
     'thres-cpu-5sec'     => '85,95',
-    'thres-cpu-1min'     => '70,90'
+    'thres-cpu-1min'     => '70,90',
+    'target'             => null,
 ];
 
 
@@ -102,117 +103,140 @@ parseArguments();
 //print_r( $cmdargs ); die();
 
 
-$payload = '{
-  "jsonrpc": "2.0",
-  "method": "runCmds",
-  "params": {
-    "format": "json",
-    "timestamps": false,
-    "autoComplete": false,
-    "expandAliases": false,
-    "cmds": [
-      "show system environment cooling",
-      "show system environment power",
-      "show system environment temperature",
-      "show version"
-    ],
-    "version": 1
-  },
-  "id": "EapiExplorer-1"
-}';
+if( $cmdargs['target'] === null || in_array( $cmdargs['target'], [ 'COOLING', 'POWER', 'TEMPERATURE', 'MEMORY' ] ) ) {
 
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, $cmdargs['api_url']);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_USERPWD, "{$cmdargs['username']}:{$cmdargs['password']}");
-curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-curl_setopt($ch, CURLOPT_POST, 1);
-curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-    'Content-Type: application/json',
-    'Content-Length: ' . strlen($payload))
-);
-$output = curl_exec($ch);
-$info = curl_getinfo($ch);
-curl_close($ch);
+    $payload = '{
+    "jsonrpc": "2.0",
+    "method": "runCmds",
+    "params": {
+        "format": "json",
+        "timestamps": false,
+        "autoComplete": false,
+        "expandAliases": false,
+        "cmds": [
+        "show system environment cooling",
+        "show system environment power",
+        "show system environment temperature",
+        "show version"
+        ],
+        "version": 1
+    },
+    "id": "EapiExplorer-1"
+    }';
 
-if( $info['http_code'] != 200 ) {
-    echo "UNKNOWN: Could not access API interface";
-    exit( STATUS_UNKNOWN );
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $cmdargs['api_url']);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_USERPWD, "{$cmdargs['username']}:{$cmdargs['password']}");
+    curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+        'Content-Type: application/json',
+        'Content-Length: ' . strlen($payload))
+    );
+    $output = curl_exec($ch);
+    $info = curl_getinfo($ch);
+    curl_close($ch);
+
+    if( $info['http_code'] != 200 ) {
+        echo "UNKNOWN: Could not access API interface";
+        exit( STATUS_UNKNOWN );
+    }
+
+    if( !( $state = json_decode( $output ) ) ) {
+        echo "UNKNOWN: Could not decode JSON response";
+        exit( STATUS_UNKNOWN );
+    }
+
+    if( isset( $state->error ) ) {
+        echo "UNKNOWN: " . $state->error->message;
+        exit( STATUS_UNKNOWN );
+    }
+
+    $state = $state->result;
+
+    if( $cmdargs['target'] === null || $cmdargs['target'] === 'COOLING' ) {
+        checkCooling( $state[0] );
+    }
+
+    if( $cmdargs['target'] === null || $cmdargs['target'] === 'POWER' ) {
+        checkPower( $state[1] );
+    }
+
+    if( $cmdargs['target'] === null || $cmdargs['target'] === 'TEMPERATURE' ) {
+        checkTemperature( $state[2] );
+    }
+
+    if( $cmdargs['target'] === null || $cmdargs['target'] === 'MEMORY' ) {
+        checkMemory( $state[3] );
+    }
+
 }
 
-if( !( $state = json_decode( $output ) ) ) {
-    echo "UNKNOWN: Could not decode JSON response";
-    exit( STATUS_UNKNOWN );
+if( $cmdargs['target'] === null || in_array( $cmdargs['target'], [ 'UPTIME', 'CPU' ] ) ) {
+
+    $payload = '{
+    "jsonrpc": "2.0",
+    "method": "runCmds",
+    "params": {
+        "format": "json",
+        "timestamps": false,
+        "autoComplete": false,
+        "expandAliases": false,
+        "cmds": [
+        "show uptime"
+        ],
+        "version": 1
+    },
+    "id": "EapiExplorer-1"
+    }';
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $cmdargs['api_url']);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_USERPWD, "{$cmdargs['username']}:{$cmdargs['password']}");
+    curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+        'Content-Type: application/json',
+        'Content-Length: ' . strlen($payload))
+    );
+    $output = curl_exec($ch);
+    $info = curl_getinfo($ch);
+    curl_close($ch);
+
+    if( $info['http_code'] != 200 ) {
+        echo "UNKNOWN: Could not access API interface for uptime";
+        exit( STATUS_UNKNOWN );
+    }
+
+    if( !( $state = json_decode( $output ) ) ) {
+        echo "UNKNOWN: Could not decode JSON response for uptime";
+        exit( STATUS_UNKNOWN );
+    }
+
+    if( isset( $state->error ) ) {
+        echo "UNKNOWN: (uptime) " . $state->error->message;
+        exit( STATUS_UNKNOWN );
+    }
+
+    $state = $state->result[0];
+
+    if( $cmdargs['target'] === null || $cmdargs['target'] === 'UPTIME' ) {
+        checkUptime( round($state->upTime / 60) );
+    }
+
+    if( $cmdargs['target'] === null || $cmdargs['target'] === 'CPU' ) {
+        checkCPU( $state->loadAvg[0], $state->loadAvg[1], $state->loadAvg[2] );
+    }
 }
 
-if( isset( $state->error ) ) {
-    echo "UNKNOWN: " . $state->error->message;
-    exit( STATUS_UNKNOWN );
-}
-
-$state = $state->result;
-
-checkCooling( $state[0] );
-checkPower( $state[1] );
-checkTemperature( $state[2] );
-checkMemory( $state[3] );
-
-$payload = '{
-  "jsonrpc": "2.0",
-  "method": "runCmds",
-  "params": {
-    "format": "json",
-    "timestamps": false,
-    "autoComplete": false,
-    "expandAliases": false,
-    "cmds": [
-      "show uptime"
-    ],
-    "version": 1
-  },
-  "id": "EapiExplorer-1"
-}';
-
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, $cmdargs['api_url']);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_USERPWD, "{$cmdargs['username']}:{$cmdargs['password']}");
-curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-curl_setopt($ch, CURLOPT_POST, 1);
-curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-    'Content-Type: application/json',
-    'Content-Length: ' . strlen($payload))
-);
-$output = curl_exec($ch);
-$info = curl_getinfo($ch);
-curl_close($ch);
-
-if( $info['http_code'] != 200 ) {
-    echo "UNKNOWN: Could not access API interface for uptime";
-    exit( STATUS_UNKNOWN );
-}
-
-if( !( $state = json_decode( $output ) ) ) {
-    echo "UNKNOWN: Could not decode JSON response for uptime";
-    exit( STATUS_UNKNOWN );
-}
-
-if( isset( $state->error ) ) {
-    echo "UNKNOWN: (uptime) " . $state->error->message;
-    exit( STATUS_UNKNOWN );
-}
-
-$state = $state->result[0];
-
-checkUptime( round($state->upTime / 60) );
-
-checkCPU( $state->loadAvg[0], $state->loadAvg[1], $state->loadAvg[2] );
 
 if( $status == STATUS_OK )
     $msg = "OK -{$normals}\n";
@@ -452,6 +476,11 @@ function parseArguments()
                 $i++;
                 break;
 
+            case 't':
+                $cmdargs['target'] = $argv[$i+1];
+                $i++;
+                break;
+
             case '?':
                 printHelp();
                 exit( STATUS_OK );
@@ -513,7 +542,7 @@ function printUsage()
     $progname = basename( $argv[0] );
 
     echo <<<END_USAGE
-{$progname} -c <API URL> -u <API USERNAME> -p <API PASSWORD> [-V] [-h] [-?] [--help]
+{$progname} -c <API URL> -u <API USERNAME> -p <API PASSWORD> [-t <TARGET>] [-V] [-h] [-?] [--help]
 
 END_USAGE;
 
@@ -554,7 +583,7 @@ function printHelp()
     echo <<<END_USAGE
 
 {$progname} - Nagios plugin to check the status of an Arista chassis'
-Copyright (c) 2004 - 2017 Open Source Solutions Ltd - http://www.opensolutions.ie/
+Copyright (c) 2004 - 2025 Open Source Solutions Ltd - http://www.opensolutions.ie/
 
 {$progname} -c <API_URL> -u <username> -p <password> [-V] [-?] [--help]
 
@@ -570,6 +599,9 @@ Options:
     API Username
  -p
     API Password
+ -t
+    Target - omit for all, or one of: 
+        COOLING|POWER|TEMPERATURE|MEMORY|CPU|UPTIME
  -v
     Verbose output
  -d
