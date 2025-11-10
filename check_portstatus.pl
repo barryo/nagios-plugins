@@ -73,6 +73,7 @@ my $answer = "";
 my $snmpkey;
 my $community = "public";
 my $port = 161;
+my $maxmsgsize = 1472; # SNMP default
 my $snmpversion = '2c';
 my $username = undef;
 my $authprotocol = 'sha1';
@@ -109,6 +110,7 @@ $status = GetOptions(
             "privprotocol=s"     => \$privprotocol,
             "privpassword=s"     => \$privpassword,
             "timeout=i"          => \$timeout,
+            "maxmsgsize=i"       => \$maxmsgsize,
 );
 
 # Just in case of problems, let's not hang Nagios
@@ -143,6 +145,7 @@ if ($snmpversion eq '3') {
 } else {
     push @sessionargs, (
         community       => $community,
+        maxmsgsize      => $maxmsgsize,
     );
 }
 
