@@ -64,6 +64,7 @@ my $authprotocol = 'sha1';
 my $authpassword = undef;
 my $privprotocol = 'aes';
 my $privpassword;
+my $maxmsgsize = 1472;
 
 GetOptions(
 	'debug!'		=> \$debug,
@@ -78,6 +79,7 @@ GetOptions(
 	'authpassword=s'		=> \$authpassword,
 	'privprotocol=s'	=> \$privprotocol,
 	'privpassword=s'		=> \$privpassword,
+	'maxmsgsize=i'		=> \$maxmsgsize,
 );
 
 if (!$host) {
@@ -310,6 +312,7 @@ if ($snmpversion eq '3') {
 } else {
 	push @sessionargs, (
 		community	=> $community,
+		maxmsgsize      => $maxmsgsize,
 	);
 }
 
